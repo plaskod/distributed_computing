@@ -1,3 +1,4 @@
+#pragma once
 #ifndef GLOBALH
 #define GLOBALH
 
@@ -16,21 +17,51 @@
 #define FALSE 0
 #define ROOT 0
 
-typedef enum {waitingForJob, waitingForEqupment, workingInGarden, InFinish} state_t;
+#define SP_TRAWNIK 2
+#define SP_PRZYCINANIE 1
+#define SP_WYGANIANIE 1
+
+#define LICZBA_OGRODNIKOW 2
+// stany w ktorych znajduja sie ogrodnicy + instytut
+typedef enum {inInstitute, waitingForJob, waitingForEquipment, workingInGarden, InFinish} state_t;
+// rodzaj pracy
+enum {obslugaTrawnika, przycinanieZywoplotu, wyganianieSzkodnikow};
+
 extern state_t stan;
 extern int rank;
 extern int size;
+extern int lamportClock; //powielenie definicji w main.cc
+extern int cs;
+
+
+extern pthread_mutex_t stateMut;
+extern pthread_mutex_t lamportMut;
+extern pthread_mutex_t csMut;
+
+
+// typy wiadmości
+#define ACK_NOWE_ZLECENIE_OD_INSTYTUTU 100// tag nowe zlecenie od instytutu
+#define REQ_ZLECENIE 110 // tag request o zlecenie
+#define ACK_ZLECENIE_ZGODA 120 // tag zgoda lub odmowa -- NIEWIEM
+#define ACK_ZLECENIE_ODMOWA 130
+#define REQ_SP_TRAWNIK 140 // tag request o sprzet T
+#define REQ_SP_PRZYCINANIE 150 // tag request o sprzet P
+#define REQ_SP_WYGANIANIE 160 // tag request o sprzet W
+#define REL_SP_TRAWNIK 170 // tag release o sprzet T
+#define REL_SP_PRZYCINANIE 180 // tag release o sprzet P
+#define REL_SP_WYGANIANIE 190 // tag release o sprzet W
+
 
 /* to może przeniesiemy do global... */
 typedef struct {
     int ts;       /* timestamp (zegar lamporta */
     int src;      /* pole nie przesyłane, ale ustawiane w main_loop */
-
+    int zlecenie_id;
+    int zlecenie_enum;
     int data;     /* przykładowe pole z danymi; można zmienić nazwę na bardziej pasującą */
+
 } packet_t;
 extern MPI_Datatype MPI_PAKIET_T;
-
-
 
 #ifdef DEBUG
 #define debug(FORMAT,...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, ##__VA_ARGS__, 27,0,37);
@@ -38,11 +69,8 @@ extern MPI_Datatype MPI_PAKIET_T;
 #define debug(...) ;
 #endif
 
-/* kolory wiadomości */
-// #define RED "\033[41m"
-// #define GRN "\033[42m"
-// #define YLW "\033[43m"
-// #define NLC "\033[0m\n"
+
+
 #define P_WHITE printf("%c[%d;%dm",27,1,37);
 #define P_BLACK printf("%c[%d;%dm",27,1,30);
 #define P_RED printf("%c[%d;%dm",27,1,31);
@@ -57,4 +85,6 @@ extern MPI_Datatype MPI_PAKIET_T;
 
 void sendPacket(packet_t *pkt, int destination, int tag);
 void changeState( state_t );
+packet_t *preparePacket(int lamportClock, int zlecenie_id, int zlecenie_enum, int data);
+
 #endif

@@ -6,7 +6,7 @@ FLAGS=-DDEBUG -g
 all: main
 
 main: $(SOURCES) $(HEADERS)
-	mpi++ $(SOURCES) $(FLAGS) -o main
+	mpicc $(SOURCES) $(FLAGS) -o main
 
 clean:
 	rm main a.out
