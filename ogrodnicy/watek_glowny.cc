@@ -20,13 +20,6 @@ void mainLoop()
             
                 packet_t *pkt = preparePacket(lamportClock, id_zlecenie, zlecenie_enum, -1);
                 broadcastPacket(pkt, NOWE_ZLECENIE_OD_INSTYTUTU);
-                // for (int i=1 ; i<size ; i++) {
-// #ifdef DEBUG_WG
-//                     debug(">>> Wysylam pakiet do: %d", i);
-// #endif
-//                     sendPacket(pkt, i, NOWE_ZLECENIE_OD_INSTYTUTU);
-//                 }
-
                 id_zlecenie++;
                 // MPI_Bcast( &pkt, 1, MPI_INT, 0, MPI_COMM_WORLD );
                 pthread_mutex_lock(&csMut);
@@ -39,41 +32,20 @@ void mainLoop()
             }
 
             case waitingForJob:{
-                // packet_t *pkt = preparePacket(lamportClock, id_zlecenie, -1, -1);
-                
-                // for(int i=1 ; i<size ; i++) {
-                //     sendPacket(pkt, i, REQ_ZLECENIE);
-                // }
 
-                // czy ten fragment powinien pojsc do nizszego case'a?
-                // if(ile_zgod = size - 1) {
-                //     if(zlecenie_enum == 0) {
-                //         sendPacket(pkt, /*do kogo?*/ i, REQ_SP_TRAWNIK);
-                //         // czy jest potrzeba pytania innych ogrodnikow o dostep do sprzetu? to juz jest sekcja krytyczna
-                //     }
-                //     if(zlecenie_enum == 1) {
-                //         sendPacket(pkt, /*do kogo?*/ i, REQ_SP_PRZYCINANIE);
-                //     }
-                //     if(zlecenie_enum == 2) {
-                //         sendPacket(pkt, /*do kogo?*/ i, REQ_SP_WYGANIANIE);
-                //     }
-                // }
-                
-                // odbierz zgodę od innych procesów
-                // odbierz zadanie
                 break;
             }
             
             case waitingForEquipment:{
-                debug("Ogrodnik: zaznajamiam sie z literatura na 2 sekundy");
-                sleep(2); // zaznajamia sie z literatura zlecenia
+                debug("Ogrodnik: zaznajamiam sie z literatura na 10 sekundy");
+                sleep(10); // zaznajamia sie z literatura zlecenia
                 
-// #ifdef DEBUG_WG
-//                 debug(">>>")
-// #endif
+
                 // o który sprzęt ubiega się ogrodnik?
                 changeState(workingInGarden);
-                
+#ifdef DEBUG_WG
+                debug(">>> Zmieniam stan na workingInGarden");
+#endif            
                 // pobrać sprzęt przed zaznajamianiem się z literaturą czy przed?
                 break;
             }
