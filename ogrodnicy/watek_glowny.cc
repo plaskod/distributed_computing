@@ -10,33 +10,29 @@ void mainLoop()
         switch (stan)
         {
             case inInstitute: {// wysyla co jakis czas zlecenia
-                int r = rand() % 11;
+                int r = 1 + rand() % 10;
                 debug("Instytut: zasypiam na %d sekund", r);
                 sleep(r);
                 
                 int zlecenie_enum = rand()%3; // losowanie zadania 1,2 lub 3
                 debug("Instytut: rozsyłam zadanie: %d - ogrodnik potrzebuje zasobu: %d", id_zlecenie, zlecenie_enum);
 
-                id_zlecenie++;// losowy zaczynajac od 1000 (do rozronienia z innymi danymi)
-#ifdef DEBUG_WG
-                debug(">>>Inkremetnacja id_zlecenia");
-#endif
+            
                 packet_t *pkt = preparePacket(lamportClock, id_zlecenie, zlecenie_enum, -1);
-#ifdef DEBUG_WG
-                debug(">>>1: Pakiet przygotowany");
-                debug(">>>2: Pakiet ts: %d, id_zlec: %d, typ: %d",pkt->ts, pkt->zlecenie_id, pkt->zlecenie_enum);
+                broadcastPacket(pkt, NOWE_ZLECENIE_OD_INSTYTUTU);
+                // for (int i=1 ; i<size ; i++) {
+// #ifdef DEBUG_WG
+//                     debug(">>> Wysylam pakiet do: %d", i);
+// #endif
+//                     sendPacket(pkt, i, NOWE_ZLECENIE_OD_INSTYTUTU);
+//                 }
 
-#endif
-                for (int i=1 ; i<size ; i++) {
-#ifdef DEBUG_WG
-                    debug(">>>Przed wyslaniem pakietu dla rank: %d, size=%d", i, size);
-#endif
-                    sendPacket(pkt, i, ACK_NOWE_ZLECENIE_OD_INSTYTUTU);
-                }
+                id_zlecenie++;
                 // MPI_Bcast( &pkt, 1, MPI_INT, 0, MPI_COMM_WORLD );
                 pthread_mutex_lock(&csMut);
                 cs++; // sekcja krytyczna sie powieksza
                 pthread_mutex_unlock(&csMut);
+
 
                 free(pkt);
                 break;
@@ -69,17 +65,25 @@ void mainLoop()
             }
             
             case waitingForEquipment:{
-                sleep(2); // zaznajamia sie z literatura zlecenia
                 debug("Ogrodnik: zaznajamiam sie z literatura na 2 sekundy");
-
+                sleep(2); // zaznajamia sie z literatura zlecenia
+                
+// #ifdef DEBUG_WG
+//                 debug(">>>")
+// #endif
                 // o który sprzęt ubiega się ogrodnik?
-
-
+                changeState(workingInGarden);
+                
                 // pobrać sprzęt przed zaznajamianiem się z literaturą czy przed?
+                break;
             }
 
             case workingInGarden:{
+                debug("Ogrodnik: pracuje przez 2 sekundy");
                 sleep(2); // pracuje
+                debug("Zadanie wykonane");
+                changeState(waitingForJob);
+                break;
             }
             default: {
                 debug("Nie placa ci za obijanie sie")

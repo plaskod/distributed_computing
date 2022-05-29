@@ -13,9 +13,11 @@ pthread_t threadKom;
 pthread_mutex_t stateMut = PTHREAD_MUTEX_INITIALIZER; // na zmiane stanu 
 pthread_mutex_t lamportMut = PTHREAD_MUTEX_INITIALIZER; // zmiana zegaru lamporta
 pthread_mutex_t csMut = PTHREAD_MUTEX_INITIALIZER; // zmiana rozmiaru sekcji krytycznej
-int lamportClock=0;
-int cs=0;
+int lamportClock = 0;
+int cs = 0;
+int ile_zgod = 0;
 int timestamps[LICZBA_OGRODNIKOW] = {0};
+std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
 
 void check_thread_support(int provided)
 {
@@ -41,14 +43,6 @@ void check_thread_support(int provided)
     }
 }
 
-/* srprawdza, czy są wątki, tworzy typ MPI_PAKIET_T
-*/
-
-/*   int ts;       
-    int src;      
-    int zlecenie_id;
-    int zlecenie_enum;
-    int data;  */
 void inicjuj(int *argc, char ***argv)
 {
     int provided;
@@ -118,6 +112,15 @@ void sendPacket(packet_t *pkt, int destination, int tag)
     pthread_mutex_unlock(&lamportMut);
     // if (freepkt) free(pkt);
     
+}
+
+void broadcastPacket(packet_t *pkt, int tag){
+    for(int i=1 ; i<size ; i++) {
+#ifdef DEBUG_BROADCAST
+        debug("Sending packet to: %d", 1);
+#endif
+        sendPacket(pkt, i, tag);
+    }
 }
 
 void changeState( state_t newState )

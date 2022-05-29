@@ -9,7 +9,7 @@ main: $(SOURCES) $(HEADERS)
 	mpic++ $(SOURCES) $(FLAGS) -o main
 
 clean:
-	rm main a.out
+	rm main
 
 run: main
 	mpirun -np 2 --oversubscribe ./main

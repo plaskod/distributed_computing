@@ -11,8 +11,9 @@
 #include <string.h>
 #include <pthread.h>
 /* odkomentować, jeżeli się chce DEBUGI */
-// #define DEBUG_WG
+#define DEBUG_WG
 #define DEBUG_WK
+// #define DEBUG_BROADCAST
 
 /* boolean */
 #define TRUE 1
@@ -35,6 +36,7 @@ extern int size;
 extern int lamportClock; //powielenie definicji w main.cc
 extern int cs;
 extern int ile_zgod;
+extern std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
 
 
 extern pthread_mutex_t stateMut;
@@ -43,10 +45,10 @@ extern pthread_mutex_t csMut;
 
 
 // typy wiadmości
-#define ACK_NOWE_ZLECENIE_OD_INSTYTUTU 100// tag nowe zlecenie od instytutu
+#define NOWE_ZLECENIE_OD_INSTYTUTU 100// tag nowe zlecenie od instytutu
 #define REQ_ZLECENIE 110 // tag request o zlecenie
-#define ACK_ZLECENIE_ZGODA 120 // tag zgoda lub odmowa -- NIEWIEM
-#define ACK_ZLECENIE_ODMOWA 130
+#define REPLY_ZLECENIE_ZGODA 120 // tag zgoda lub odmowa -- NIEWIEM
+// #define ACK_ZLECENIE_ODMOWA 130
 #define REQ_SP_TRAWNIK 140 // tag request o sprzet T
 #define REQ_SP_PRZYCINANIE 150 // tag request o sprzet P
 #define REQ_SP_WYGANIANIE 160 // tag request o sprzet W
@@ -67,7 +69,7 @@ typedef struct {
 extern MPI_Datatype MPI_PAKIET_T;
 
 #ifdef DEBUG
-#define debug(FORMAT,...) printf("%c[%d;%dm [%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, ##__VA_ARGS__, 27,0,37);
+#define debug(FORMAT,...) printf("%c[%d;%dm [%d][ts=%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, lamportClock, ##__VA_ARGS__, 27,0,37);
 #else
 #define debug(...) ;
 #endif
@@ -89,5 +91,6 @@ extern MPI_Datatype MPI_PAKIET_T;
 void sendPacket(packet_t *pkt, int destination, int tag);
 void changeState( state_t );
 packet_t *preparePacket(int lamportClock, int zlecenie_id, int zlecenie_enum, int data);
+void broadcastPacket(packet_t *pkt, int tag);
 
 #endif
