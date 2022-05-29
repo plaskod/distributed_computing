@@ -12,4 +12,10 @@ clean:
 	rm main a.out
 
 run: main
-	mpirun -np 8 --oversubscribe ./main
+	mpirun -np 2 --oversubscribe ./main
+
+# rerun: $(SOURCES) $(HEADERS)
+# 	rm main a.out
+# 	mpic++ $(SOURCES) $(FLAGS) -o main
+# 	mpirun -np 2 --oversubscribe ./main
+

@@ -2,7 +2,7 @@
 #ifndef GLOBALH
 #define GLOBALH
 
-#define _GNU_SOURCE
+// #define _GNU_SOURCE
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +11,9 @@
 #include <string.h>
 #include <pthread.h>
 /* odkomentować, jeżeli się chce DEBUGI */
-//#define DEBUG 
+// #define DEBUG_WG
+#define DEBUG_WK
+
 /* boolean */
 #define TRUE 1
 #define FALSE 0

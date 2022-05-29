@@ -2,6 +2,7 @@
 #include "watek_glowny.hh"
 #include <stdlib.h>
 
+
 void mainLoop()
 {
     int id_zlecenie = 1000;
@@ -15,10 +16,21 @@ void mainLoop()
                 
                 int zlecenie_enum = rand()%3; // losowanie zadania 1,2 lub 3
                 debug("Instytut: rozsyłam zadanie: %d - ogrodnik potrzebuje zasobu: %d", id_zlecenie, zlecenie_enum);
-                id_zlecenie++;// losowy zaczynajac od 1000 (do rozronienia z innymi danymi)
 
+                id_zlecenie++;// losowy zaczynajac od 1000 (do rozronienia z innymi danymi)
+#ifdef DEBUG_WG
+                debug(">>>Inkremetnacja id_zlecenia");
+#endif
                 packet_t *pkt = preparePacket(lamportClock, id_zlecenie, zlecenie_enum, -1);
+#ifdef DEBUG_WG
+                debug(">>>1: Pakiet przygotowany");
+                debug(">>>2: Pakiet ts: %d, id_zlec: %d, typ: %d",pkt->ts, pkt->zlecenie_id, pkt->zlecenie_enum);
+
+#endif
                 for (int i=1 ; i<size ; i++) {
+#ifdef DEBUG_WG
+                    debug(">>>Przed wyslaniem pakietu dla rank: %d, size=%d", i, size);
+#endif
                     sendPacket(pkt, i, ACK_NOWE_ZLECENIE_OD_INSTYTUTU);
                 }
                 // MPI_Bcast( &pkt, 1, MPI_INT, 0, MPI_COMM_WORLD );

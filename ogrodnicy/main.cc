@@ -134,6 +134,7 @@ void changeState( state_t newState )
 packet_t *preparePacket(int lamportClock, int zlecenie_id=-1, int zlecenie_enum=-1, int data=-1){
     packet_t *pkt = (packet_t*)malloc(sizeof(packet_t));
     pkt->ts = lamportClock;
+    pkt->src = rank;
     pkt->zlecenie_id = zlecenie_id;
     pkt->zlecenie_enum = zlecenie_enum;
     pkt->data = data;
