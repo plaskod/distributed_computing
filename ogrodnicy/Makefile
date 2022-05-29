@@ -6,10 +6,10 @@ FLAGS=-DDEBUG -g
 all: main
 
 main: $(SOURCES) $(HEADERS)
-	mpicc $(SOURCES) $(FLAGS) -o main
+	mpic++ $(SOURCES) $(FLAGS) -o main
 
 clean:
 	rm main a.out
 
 run: main
-	mpirun -np 8 ./main
+	mpirun -np 8 --oversubscribe ./main

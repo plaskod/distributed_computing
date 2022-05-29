@@ -31,25 +31,25 @@ void mainLoop()
             }
 
             case waitingForJob:{
-                packet_t *pkt = preparePacket(lamportClock, id_zlecenie, -1, -1);
+                // packet_t *pkt = preparePacket(lamportClock, id_zlecenie, -1, -1);
                 
-                for(int i=1 ; i<size ; i++) {
-                    sendPacket(pkt, i, REQ_ZLECENIE);
-                }
+                // for(int i=1 ; i<size ; i++) {
+                //     sendPacket(pkt, i, REQ_ZLECENIE);
+                // }
 
                 // czy ten fragment powinien pojsc do nizszego case'a?
-                if(ile_zgod = size - 1) {
-                    if(zlecenie_enum == 0) {
-                        sendPacket(pkt, /*do kogo?*/ i, REQ_SP_TRAWNIK);
-                        // czy jest potrzeba pytania innych ogrodnikow o dostep do sprzetu? to juz jest sekcja krytyczna
-                    }
-                    if(zlecenie_enum == 1) {
-                        sendPacket(pkt, /*do kogo?*/ i, REQ_SP_PRZYCINANIE);
-                    }
-                    if(zlecenie_enum == 2) {
-                        sendPacket(pkt, /*do kogo?*/ i, REQ_SP_WYGANIANIE);
-                    }
-                }
+                // if(ile_zgod = size - 1) {
+                //     if(zlecenie_enum == 0) {
+                //         sendPacket(pkt, /*do kogo?*/ i, REQ_SP_TRAWNIK);
+                //         // czy jest potrzeba pytania innych ogrodnikow o dostep do sprzetu? to juz jest sekcja krytyczna
+                //     }
+                //     if(zlecenie_enum == 1) {
+                //         sendPacket(pkt, /*do kogo?*/ i, REQ_SP_PRZYCINANIE);
+                //     }
+                //     if(zlecenie_enum == 2) {
+                //         sendPacket(pkt, /*do kogo?*/ i, REQ_SP_WYGANIANIE);
+                //     }
+                // }
                 
                 // odbierz zgodę od innych procesów
                 // odbierz zadanie

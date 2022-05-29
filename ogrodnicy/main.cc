@@ -79,8 +79,10 @@ void inicjuj(int *argc, char ***argv)
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     srand(rank);
 
-    if(rank!=ROOT)
+    if(rank!=ROOT){
         pthread_create( &threadKom, NULL, startKomWatek , 0);
+        debug("Komuikacja otwarta");
+    }
     else { 
         changeState(inInstitute);
         debug("Nowy instytut");

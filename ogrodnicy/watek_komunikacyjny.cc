@@ -7,7 +7,7 @@ void *startKomWatek(void *ptr)
     
     MPI_Status status;
     packet_t *pkt;
-    ile_zgod = 0;
+    // ile_zgod = 0;
     while(1) {
         MPI_Recv(&pkt, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         pthread_mutex_lock(&lamportMut);
@@ -29,7 +29,7 @@ void *startKomWatek(void *ptr)
                 break;
             case ACK_ZLECENIE_ZGODA:
                 // trzeba zliczac ile zgód się otrzymało
-                ile_zgod++; // jezeli ile_zgod = size - 1 staraj sie wejsc do sekcji krytycznej
+                // ile_zgod++; // jezeli ile_zgod = size - 1 staraj sie wejsc do sekcji krytycznej
 
                 break;
                 
