@@ -32,6 +32,7 @@ extern int rank;
 extern int size;
 extern int lamportClock; //powielenie definicji w main.cc
 extern int cs;
+extern int ile_zgod;
 
 
 extern pthread_mutex_t stateMut;
