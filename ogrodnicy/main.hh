@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include <queue>
+#include <vector>
 /* odkomentować, jeżeli się chce DEBUGI */
 #define DEBUG_WG
 #define DEBUG_WK
@@ -33,22 +35,25 @@ enum {obslugaTrawnika, przycinanieZywoplotu, wyganianieSzkodnikow};
 extern state_t stan;
 extern int rank;
 extern int size;
-extern int lamportClock; //powielenie definicji w main.cc
+extern int lamportClock; 
 extern int cs;
 extern int ile_zgod;
-extern std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
+// extern std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
+// extern std::queue<packet_t> processWaitingForJob;
 
 
+ // sprzet[zlecenie_enum].insert({rank, reply_na_sprzet_tag}) 
 extern pthread_mutex_t stateMut;
 extern pthread_mutex_t lamportMut;
 extern pthread_mutex_t csMut;
+extern pthread_mutex_t lista_ogloszenMut;
 
 
 // typy wiadmości
 #define NOWE_ZLECENIE_OD_INSTYTUTU 100// tag nowe zlecenie od instytutu
 #define REQ_ZLECENIE 110 // tag request o zlecenie
-#define REPLY_ZLECENIE_ZGODA 120 // tag zgoda lub odmowa -- NIEWIEM
-// #define ACK_ZLECENIE_ODMOWA 130
+#define REPLY_ZLECENIE_ZGODA 120 // tag zgoda lub odmowa
+#define REPLY_EQUIPMMENT_zGODA 130
 #define REQ_SP_TRAWNIK 140 // tag request o sprzet T
 #define REQ_SP_PRZYCINANIE 150 // tag request o sprzet P
 #define REQ_SP_WYGANIANIE 160 // tag request o sprzet W
@@ -58,18 +63,29 @@ extern pthread_mutex_t csMut;
 
 
 /* to może przeniesiemy do global... */
+
+typedef struct {
+    int id;
+    int rodzaj_sprzetu;
+} zlecenie_t;
+extern zlecenie_t moje_zlecenie;
+
 typedef struct {
     int ts;       /* timestamp (zegar lamporta */
     int src;      /* pole nie przesyłane, ale ustawiane w main_loop */
     int zlecenie_id;
-    int zlecenie_enum;
-    int data;     /* przykładowe pole z danymi; można zmienić nazwę na bardziej pasującą */
+    int rodzaj_sprzetu;
+    int data;
 
 } packet_t;
 extern MPI_Datatype MPI_PAKIET_T;
 
+extern std::map<int, int> lista_ogloszen;
+extern std::map<int, zlecenie_t> zlecenia;
+extern std::vector<std::map<int,int>> sprzet;
+
 #ifdef DEBUG
-#define debug(FORMAT,...) printf("%c[%d;%dm [%d][ts=%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, lamportClock, ##__VA_ARGS__, 27,0,37);
+#define debug(FORMAT,...) printf("%c[%d;%dm [%d][ts=%d][stan=%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, lamportClock, stan, ##__VA_ARGS__, 27,0,37);
 #else
 #define debug(...) ;
 #endif
@@ -90,7 +106,7 @@ extern MPI_Datatype MPI_PAKIET_T;
 
 void sendPacket(packet_t *pkt, int destination, int tag);
 void changeState( state_t );
-packet_t *preparePacket(int lamportClock, int zlecenie_id, int zlecenie_enum, int data);
+packet_t *preparePacket(int lamportClock, int zlecenie_id, int rodzaj_sprzetu,int data);
 void broadcastPacket(packet_t *pkt, int tag);
 
 #endif

@@ -6,6 +6,7 @@
 void mainLoop()
 {
     int id_zlecenie = 1000;
+    int rodzaj_sprzetu;
     while(1){
         switch (stan)
         {
@@ -14,25 +15,41 @@ void mainLoop()
                 debug("Instytut: zasypiam na %d sekund", r);
                 sleep(r);
                 
-                int zlecenie_enum = rand()%3; // losowanie zadania 1,2 lub 3
-                debug("Instytut: rozsyłam zadanie: %d - ogrodnik potrzebuje zasobu: %d", id_zlecenie, zlecenie_enum);
+                rodzaj_sprzetu = rand()%3; // losowanie zadania 0,1 lub 2
+                debug("Instytut: rozsyłam zadanie: %d - ogrodnik potrzebuje zasobu: %d", id_zlecenie, rodzaj_sprzetu);
 
-            
-                packet_t *pkt = preparePacket(lamportClock, id_zlecenie, zlecenie_enum, -1);
+                packet_t *pkt = preparePacket(lamportClock, id_zlecenie, rodzaj_sprzetu, -1);
                 broadcastPacket(pkt, NOWE_ZLECENIE_OD_INSTYTUTU);
                 id_zlecenie++;
-                // MPI_Bcast( &pkt, 1, MPI_INT, 0, MPI_COMM_WORLD );
                 pthread_mutex_lock(&csMut);
                 cs++; // sekcja krytyczna sie powieksza
                 pthread_mutex_unlock(&csMut);
-
 
                 free(pkt);
                 break;
             }
 
             case waitingForJob:{
-
+                // iterujemy po liscie ogloszen i szukamy niezajetego zlecenia
+                    // pthread_mutex_lock(&lista_ogloszenMut);
+// #ifdef DEBUG_WG
+//                     debug("Szukam pracy, ");
+// #endif
+//                     pthread_mutex_lock(&lista_ogloszenMut);
+                        std::map<int, int>::iterator it = lista_ogloszen.begin();
+                        while (it!=lista_ogloszen.end()){
+                                if(it->second == -1){
+                                    int idd = it->first;
+#ifdef DEBUG_WK
+                                    debug("Iteruje po: %d z rodzajem sprzetu: %d", idd, zlecenia[idd].rodzaj_sprzetu);
+#endif
+                                    break;
+                                }
+                        }
+                        
+//                     }
+//                     pthread_mutex_unlock(&lista_ogloszenMut);
+                    // sleep(1);
                 break;
             }
             
@@ -53,8 +70,9 @@ void mainLoop()
             case workingInGarden:{
                 debug("Ogrodnik: pracuje przez 2 sekundy");
                 sleep(2); // pracuje
-                debug("Zadanie wykonane");
+                
                 changeState(waitingForJob);
+                debug("Zadanie wykonane");
                 break;
             }
             default: {

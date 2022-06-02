@@ -13,11 +13,15 @@ pthread_t threadKom;
 pthread_mutex_t stateMut = PTHREAD_MUTEX_INITIALIZER; // na zmiane stanu 
 pthread_mutex_t lamportMut = PTHREAD_MUTEX_INITIALIZER; // zmiana zegaru lamporta
 pthread_mutex_t csMut = PTHREAD_MUTEX_INITIALIZER; // zmiana rozmiaru sekcji krytycznej
+pthread_mutex_t lista_ogloszenMut = PTHREAD_MUTEX_INITIALIZER;
+
 int lamportClock = 0;
 int cs = 0;
 int ile_zgod = 0;
 int timestamps[LICZBA_OGRODNIKOW] = {0};
 std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
+std::map<int, int> lista_ogloszen;
+std::map<int, zlecenie_t> zlecenia;
 
 void check_thread_support(int provided)
 {
@@ -63,7 +67,7 @@ void inicjuj(int *argc, char ***argv)
     offsets[0] = offsetof(packet_t, ts);
     offsets[1] = offsetof(packet_t, src);
     offsets[2] = offsetof(packet_t, zlecenie_id);
-    offsets[3] = offsetof(packet_t, zlecenie_enum);
+    offsets[3] = offsetof(packet_t, rodzaj_sprzetu);
     offsets[4] = offsetof(packet_t, data);
 
     MPI_Type_create_struct(nitems, blocklengths, offsets, typy, &MPI_PAKIET_T);
@@ -90,6 +94,7 @@ void finalizuj()
     pthread_mutex_destroy( &stateMut);
     pthread_mutex_destroy( &lamportMut);
     pthread_mutex_destroy( &csMut);
+    pthread_mutex_destroy( &lista_ogloszenMut);
     /* Czekamy, aż wątek potomny się zakończy */
     println("czekam na wątek \"komunikacyjny\"\n" );
     pthread_join(threadKom,NULL);
@@ -134,12 +139,12 @@ void changeState( state_t newState )
     pthread_mutex_unlock( &stateMut );
 }
 
-packet_t *preparePacket(int lamportClock, int zlecenie_id=-1, int zlecenie_enum=-1, int data=-1){
+packet_t *preparePacket(int lamportClock, int zlecenie_id=-1, int rodzaj_sprzetu=-1, int data=-1){
     packet_t *pkt = (packet_t*)malloc(sizeof(packet_t));
     pkt->ts = lamportClock;
     pkt->src = rank;
     pkt->zlecenie_id = zlecenie_id;
-    pkt->zlecenie_enum = zlecenie_enum;
+    pkt->rodzaj_sprzetu = rodzaj_sprzetu;
     pkt->data = data;
     return pkt;
 }

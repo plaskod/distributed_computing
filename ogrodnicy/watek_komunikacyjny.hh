@@ -3,5 +3,7 @@
 
 /* wątek komunikacyjny: odbieranie wiadomości i reagowanie na nie poprzez zmiany stanu */
 void *startKomWatek(void *ptr);
+bool heardAboutThisJob(packet_t pkt);
+bool shouldSendRequest(packet_t pkt);
 bool shouldSendReply(packet_t pkt);
 #endif
