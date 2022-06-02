@@ -27,27 +27,14 @@ void *startKomWatek(void *ptr)
                 
                 debug(">>>Otrzymalem info o nowym zleceniu: %d - ogrodnik potrzebuje zasobu: %d", id, rodzaj_sprzetu);
 #endif
+
                 if(!heardAboutThisJob(recv_pkt)){
-#ifdef DEBUG_WK
-                
-                debug("!!! TUTAJ0");
-#endif
                     lista_ogloszen[id] = -1; // dodajemy nowe zlecenie do listy ogloszen
                     zlecenia[id] = {id, rodzaj_sprzetu}; // dodajemy nowe zlecenie do slownika zlecen
                 }
-#ifdef DEBUG_WK
-                
-                debug("!!! TUTAJ1");
-#endif
-                pthread_mutex_lock( &stateMut );
-#ifdef DEBUG_WK
-                
-                debug("!!! TUTAJ2");
-#endif
+
+//                 pthread_mutex_lock( &stateMut );
                 if(stan == waitingForJob){
-#ifdef DEBUG_WK
-                    debug("*******Patrze na liste ogloszen");
-#endif
                     std::map<int, int>::iterator it = lista_ogloszen.begin();
                     while (it!=lista_ogloszen.end()){
                         if(it->second == -1){
@@ -61,9 +48,10 @@ void *startKomWatek(void *ptr)
                             free(new_pkt);
                             break;
                         }
+                        it++;
                     }
                 }
-                pthread_mutex_unlock( &stateMut );
+//                 pthread_mutex_unlock( &stateMut );
 
                 
 //                 if(shouldSendRequest(recv_pkt)){
@@ -75,9 +63,7 @@ void *startKomWatek(void *ptr)
 //                     free(new_pkt);
 //                     lista_ogloszen[id] = lamportClock;
 //                 }
-#ifdef DEBUG_WK
-                debug("!!! WYchodze!: %d", recv_pkt.src);
-#endif        
+  
 
                 break;
             }
@@ -98,9 +84,8 @@ void *startKomWatek(void *ptr)
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
-                    pthread_mutex_lock(&lista_ogloszenMut);
                     lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
-                    pthread_mutex_unlock(&lista_ogloszenMut);
+
                     
                 }
                 else{
@@ -121,12 +106,49 @@ void *startKomWatek(void *ptr)
                     debug("Otrzymalem zgode, w sumie: %d ", ile_zgod);
 #endif
                 if(ile_zgod==size-1){ // and cs-rozmiar_kolejki!=0
-#ifdef DEBUG_WK
-                    debug("Zaraz zaczne szukac sprzetu: %d ", ile_zgod);
-#endif
+
+
                     changeState(waitingForEquipment);
-                    ile_zgod = 0; // to chyba nie sprawdzi sie
+                    ile_zgod = 0;
+                    moje_zlecenie.id = id;
+                    moje_zlecenie.rodzaj_sprzetu = rodzaj_sprzetu;
+#ifdef DEBUG_WK
+                    debug("Zaraz zaczne pracę nad id: %d szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
+#endif  
+                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
+                    switch(rodzaj_sprzetu){
+                        case obslugaTrawnika: {
+                            broadcastPacket(new_pkt, REQ_SP_TRAWNIK);
+                            break;
+                        }
+
+                        case przycinanieZywoplotu: {
+                            broadcastPacket(new_pkt, REQ_SP_PRZYCINANIE);
+                            break;
+                        }
+
+                        case wyganianieSzkodnikow: {
+                            broadcastPacket(new_pkt, REQ_SP_WYGANIANIE);
+                            break;
+                        }
+                        default:
+                            debug("Jakis dziwny sprzet");
+                            break;
+                    }
+                    
+                    free(new_pkt);
+                    
                 }
+                break;
+            }
+            case REQ_SP_TRAWNIK:{
+
+                break;
+            }
+            case REQ_SP_PRZYCINANIE:{
+                break;
+            }
+            case REQ_SP_WYGANIANIE:{
                 break;
             }
             case REL_SP_TRAWNIK:{
@@ -158,15 +180,16 @@ void *startKomWatek(void *ptr)
 }
 
 bool heardAboutThisJob(packet_t pkt){
-    pthread_mutex_lock(&lista_ogloszenMut);
+    //pthread_mutex_lock(&lista_ogloszenMut);
     std::map<int, int>::iterator it = lista_ogloszen.begin();
     while (it!=lista_ogloszen.end()){
         if(pkt.zlecenie_id == it->first){
-            pthread_mutex_unlock(&lista_ogloszenMut);
+            // pthread_mutex_unlock(&lista_ogloszenMut);
             return true;
         }
+        it++;
     }
-    pthread_mutex_unlock(&lista_ogloszenMut);
+    //pthread_mutex_unlock(&lista_ogloszenMut);
     return false;
 }
 
@@ -191,6 +214,8 @@ bool shouldSendReply(packet_t pkt){
     return false;
 }
 
-void updateJobList(packet_t pkt){
-
+bool shouldGrantEquipment(packet_t pkt){
+    if(stan!=waitingForEquipment){ return true;}
+    if(rank==pkt.src) {return true;}
+    else if()
 }

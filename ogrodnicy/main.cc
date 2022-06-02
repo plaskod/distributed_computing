@@ -22,7 +22,7 @@ int timestamps[LICZBA_OGRODNIKOW] = {0};
 std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
 std::map<int, int> lista_ogloszen;
 std::map<int, zlecenie_t> zlecenia;
-
+zlecenie_t moje_zlecenie = {-1, -1};
 void check_thread_support(int provided)
 {
     printf("THREAD SUPPORT: %d\n", provided);
@@ -134,6 +134,10 @@ void changeState( state_t newState )
     if (stan==InFinish) { 
 	    pthread_mutex_unlock( &stateMut );
         return;
+    }
+    if (stan==workingInGarden && newState==waitingForJob){
+        moje_zlecenie.id = -1;
+        moje_zlecenie.rodzaj_sprzetu = -1;
     }
     stan = newState;
     pthread_mutex_unlock( &stateMut );

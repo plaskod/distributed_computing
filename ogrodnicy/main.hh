@@ -84,6 +84,8 @@ extern std::map<int, int> lista_ogloszen;
 extern std::map<int, zlecenie_t> zlecenia;
 extern std::vector<std::map<int,int>> sprzet;
 
+extern zlecenie_t moje_zlecenie;
+
 #ifdef DEBUG
 #define debug(FORMAT,...) printf("%c[%d;%dm [%d][ts=%d][stan=%d]: " FORMAT "%c[%d;%dm\n",  27, (1+(rank/7))%2, 31+(6+rank)%7, rank, lamportClock, stan, ##__VA_ARGS__, 27,0,37);
 #else
