@@ -21,7 +21,7 @@ int ile_zgod = 0;
 int ile_zgod_sprzet = 0;
 int timestamps[LICZBA_OGRODNIKOW] = {0};
 std::map<int, int> processWaitingForMyEquipment;
-std::map <int, int> replies;
+std::map<int, int> replies; // odpowiedzi od innych procesow, id zlecenia (key)
 std::map<int, int> lista_ogloszen;
 std::map<int, zlecenie_t> zlecenia;
 zlecenie_t moje_zlecenie = {-1, -1};

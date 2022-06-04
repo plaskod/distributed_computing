@@ -44,26 +44,13 @@ void *startKomWatek(void *ptr)
 #endif
                             packet_t *new_pkt = preparePacket(lamportClock, idd, zlecenia[idd].rodzaj_sprzetu, -1);
                             broadcastPacket(new_pkt, REQ_ZLECENIE);
-                            lista_ogloszen[idd] = lamportClock;
+                            lista_ogloszen[idd] = lamportClock; // nie usuwam z listy ogloszen, kazdy kolejny REQ ponownie by to dodawal
                             free(new_pkt);
                             break;
                         }
                         it++;
                     }
                 }
-//                 pthread_mutex_unlock( &stateMut );
-
-                
-//                 if(shouldSendRequest(recv_pkt)){
-// #ifdef DEBUG_WK
-//                 debug(">>> Wysylam REQ na zlecenie: %d - ogrodnik potrzebuje zasobu: %d", id, rodzaj_sprzetu);
-// #endif
-//                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
-//                     broadcastPacket(new_pkt, REQ_ZLECENIE);
-//                     free(new_pkt);
-//                     lista_ogloszen[id] = lamportClock;
-//                 }
-  
 
                 break;
             }
@@ -85,16 +72,16 @@ void *startKomWatek(void *ptr)
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
-                    // lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
-                    lista_ogloszen.erease(id); // jezeli odpowiadam to nie ubiegam sie
+                    lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
+                    // lista_ogloszen.erease(id); // jezeli odpowiadam to nie ubiegam sie
                     
                 }
                 else{
                     
 #ifdef DEBUG_WK
-                    debug("Nie jestem w stanie wziac to zadanie, usuwam id: %d", id);
+                    debug("Nie jestem w stanie podjac się tego zadania, usuwam id: %d", id);
 #endif
-
+                    
                 }
                 
                 break;
@@ -169,12 +156,10 @@ bool heardAboutThisJob(packet_t pkt){
     std::map<int, int>::iterator it = lista_ogloszen.begin();
     while (it!=lista_ogloszen.end()){
         if(pkt.zlecenie_id == it->first){
-            // pthread_mutex_unlock(&lista_ogloszenMut);
             return true;
         }
         it++;
     }
-    //pthread_mutex_unlock(&lista_ogloszenMut);
     return false;
 }
 
