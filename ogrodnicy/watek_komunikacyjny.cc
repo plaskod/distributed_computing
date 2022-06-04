@@ -14,7 +14,6 @@ void *startKomWatek(void *ptr)
 #endif
         MPI_Recv(&recv_pkt, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         pthread_mutex_lock(&lamportMut);
-        // lamportClock = std::max(lamportClock, recv_pkt.ts)+1;
         lamportClock = (recv_pkt.ts > lamportClock ? recv_pkt.ts : lamportClock) + 1;
         pthread_mutex_unlock(&lamportMut);
 
@@ -85,7 +84,7 @@ void *startKomWatek(void *ptr)
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
                     lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
-
+                    lista_ogloszen.erease(id);
                     
                 }
                 else{
@@ -93,8 +92,7 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                     debug("Dodaje proces: %d do kolejki", recv_pkt.src);
 #endif
-                    // processWaitingForJob[recv_pkt.src] = recv_pkt.ts; // TODO: queue
-                    // processWaitingForJob.push(recv_pkt); // dane = tag z reply
+
                 }
                 
                 break;
@@ -141,15 +139,42 @@ void *startKomWatek(void *ptr)
                 }
                 break;
             }
-            case REQ_SP_TRAWNIK:{
+            case REQ_SPRZET:{
+                if(shouldGrantEquipment(pkt)){
+                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
+                    sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
+                    free(new_pkt);
+                }
+                else{
+                    // dodaj do kolejki czekajacych na ten sam sprzet
+                    processWaitingForMyEquipment[recv_pkt.src] = rodzaj_sprzetu; // mutex here?
+                }
+                break;
+            }
 
+            case REPLY_SPRZET:{
+                
+                if(stan==waitingForEquipment){
+                    ile_zgod_sprzet++;
+                    if(ile_zgod_sprzet==size-1){ // 
+#ifdef DEBUG_WK
+                        debug("Czekajac na sprzet, odebralem juz wszystkie zgody! Zaraz zacznę pracę");
+#endif
+                        ile_zgod_sprzet = 0;
+                        changeState(workingInGarden);
+
+#ifdef DEBUG_WK
+                    debug(">>> Zmieniłem stan na workingInGarden");
+#endif       
+                    
+                }
+                else{
+                    debug("UWAGA! Nie poszukuje sprzetu!");
+                }
                 break;
             }
-            case REQ_SP_PRZYCINANIE:{
-                break;
-            }
-            case REQ_SP_WYGANIANIE:{
-                break;
+            case REL_SPRZET:{
+                breakl
             }
             case REL_SP_TRAWNIK:{
                 pthread_mutex_lock(&csMut);
@@ -207,15 +232,15 @@ bool shouldSendReply(packet_t pkt){
             return true;
         }
     }
-    // else if(stan==waitingForEquipment && pkt.src!=rank){
-    //     return true;
-    // }
 
     return false;
 }
 
 bool shouldGrantEquipment(packet_t pkt){
-    if(stan!=waitingForEquipment){ return true;}
     if(rank==pkt.src) {return true;}
-    else if()
+    else if(stan!=waitingForEquipment){ return true;}
+    else if(stan==waitingForEquipment && moje_zlecenie.rodzaj_sprzetu!=pkt.rodzaj_sprzetu){ // mutex here?
+        return true;
+    }
+    return false;
 }

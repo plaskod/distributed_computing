@@ -39,17 +39,31 @@ void mainLoop()
                 
 
                 // o który sprzęt ubiega się ogrodnik?
-                changeState(workingInGarden);
-#ifdef DEBUG_WG
-                debug(">>> Zmieniam stan na workingInGarden");
-#endif            
+//                 changeState(workingInGarden);
+// #ifdef DEBUG_WG
+//                 debug(">>> Zmieniam stan na workingInGarden");
+// #endif            
                 break;
             }
 
             case workingInGarden:{
-                debug("Ogrodnik: pracuje przez 2 sekundy");
-                sleep(2); // pracuje
-                
+                int r = 1 + rand() % 5;
+                debug("Ogrodnik: wykonuje - %s - przez %d sekund",tag2job_name[moje_zlecenie.rodzaj_sprzetu], r);
+                sleep(r);
+
+                std::map<int, int>::iterator it = processWaitingForMyEquipment.begin();
+                while (it!=waitingForEquipment.end()){ // wysyla kazdemu, moze powinien wyslac tylko jednemu?
+                        int idd = it->first;
+#ifdef DEBUG_WG
+                debug("Juz nie potrzebuje sprzetu, wysylam REPLY do: %d", idd);
+#endif
+                        packet_t *new_pkt = preparePacket(lamportClock, idd, zlecenia[idd].rodzaj_sprzetu, -1);
+                        sendPacket(new_pkt, idd, REPLY_SPRZET); // nie zachowuje kolejnosci
+                        free(new_pkt);
+                        processWaitingForMyEquipment.erase(idd);
+                    }
+                    it++;
+                }
                 changeState(waitingForJob);
                 debug("Zadanie wykonane");
                 break;

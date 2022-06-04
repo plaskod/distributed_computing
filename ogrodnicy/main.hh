@@ -38,11 +38,9 @@ extern int size;
 extern int lamportClock; 
 extern int cs;
 extern int ile_zgod;
-// extern std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
-// extern std::queue<packet_t> processWaitingForJob;
+extern int ile_zgod_sprzet;
+extern std::map <int, string> tag2job_name;
 
-
- // sprzet[zlecenie_enum].insert({rank, reply_na_sprzet_tag}) 
 extern pthread_mutex_t stateMut;
 extern pthread_mutex_t lamportMut;
 extern pthread_mutex_t csMut;
@@ -60,6 +58,7 @@ extern pthread_mutex_t lista_ogloszenMut;
 #define REL_SP_TRAWNIK 170 // tag release o sprzet T
 #define REL_SP_PRZYCINANIE 180 // tag release o sprzet P
 #define REL_SP_WYGANIANIE 190 // tag release o sprzet W
+#define REPLY_SPRZET 200
 
 
 /* to może przeniesiemy do global... */
@@ -83,6 +82,7 @@ extern MPI_Datatype MPI_PAKIET_T;
 extern std::map<int, int> lista_ogloszen;
 extern std::map<int, zlecenie_t> zlecenia;
 extern std::vector<std::map<int,int>> sprzet;
+extern std::map<int, int> processWaitingForMyEquipment;
 
 extern zlecenie_t moje_zlecenie;
 

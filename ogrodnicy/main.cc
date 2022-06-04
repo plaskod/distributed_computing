@@ -18,11 +18,13 @@ pthread_mutex_t lista_ogloszenMut = PTHREAD_MUTEX_INITIALIZER;
 int lamportClock = 0;
 int cs = 0;
 int ile_zgod = 0;
+int ile_zgod_sprzet = 0;
 int timestamps[LICZBA_OGRODNIKOW] = {0};
 std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
 std::map<int, int> lista_ogloszen;
 std::map<int, zlecenie_t> zlecenia;
 zlecenie_t moje_zlecenie = {-1, -1};
+std::map<int, std::string> tag2job_name = {{0, "obslugat trawnika"}, {1, "przycianaie zywoplotu"}, {2, "wyganianie szkodnikow"}};
 void check_thread_support(int provided)
 {
     printf("THREAD SUPPORT: %d\n", provided);
