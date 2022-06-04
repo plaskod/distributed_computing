@@ -40,11 +40,12 @@ extern int cs;
 extern int ile_zgod;
 extern int ile_zgod_sprzet;
 extern std::map <int, string> tag2job_name;
+extern std::map <int, int> replies;
 
 extern pthread_mutex_t stateMut;
 extern pthread_mutex_t lamportMut;
 extern pthread_mutex_t csMut;
-extern pthread_mutex_t lista_ogloszenMut;
+extern pthread_mutex_t equipmentMut;
 
 
 // typy wiadmości

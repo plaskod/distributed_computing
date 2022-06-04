@@ -13,14 +13,15 @@ pthread_t threadKom;
 pthread_mutex_t stateMut = PTHREAD_MUTEX_INITIALIZER; // na zmiane stanu 
 pthread_mutex_t lamportMut = PTHREAD_MUTEX_INITIALIZER; // zmiana zegaru lamporta
 pthread_mutex_t csMut = PTHREAD_MUTEX_INITIALIZER; // zmiana rozmiaru sekcji krytycznej
-pthread_mutex_t lista_ogloszenMut = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t equipmentMut = PTHREAD_MUTEX_INITIALIZER; // zmiana na liscie procesow czekajacych na sprzet
 
 int lamportClock = 0;
 int cs = 0;
 int ile_zgod = 0;
 int ile_zgod_sprzet = 0;
 int timestamps[LICZBA_OGRODNIKOW] = {0};
-std::map<int, int> processWaitingForJob, processWaitingForMyEquipment;
+std::map<int, int> processWaitingForMyEquipment;
+std::map <int, int> replies;
 std::map<int, int> lista_ogloszen;
 std::map<int, zlecenie_t> zlecenia;
 zlecenie_t moje_zlecenie = {-1, -1};

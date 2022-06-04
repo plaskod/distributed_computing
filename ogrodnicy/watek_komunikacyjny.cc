@@ -30,9 +30,10 @@ void *startKomWatek(void *ptr)
                 if(!heardAboutThisJob(recv_pkt)){
                     lista_ogloszen[id] = -1; // dodajemy nowe zlecenie do listy ogloszen
                     zlecenia[id] = {id, rodzaj_sprzetu}; // dodajemy nowe zlecenie do slownika zlecen
+                    replies[id] = 0;
                 }
 
-//                 pthread_mutex_lock( &stateMut );
+
                 if(stan == waitingForJob){
                     std::map<int, int>::iterator it = lista_ogloszen.begin();
                     while (it!=lista_ogloszen.end()){
@@ -74,6 +75,7 @@ void *startKomWatek(void *ptr)
                 if(!heardAboutThisJob(recv_pkt)){
                     lista_ogloszen[id] = -1; 
                     zlecenia[id] = {id, rodzaj_sprzetu};// dodajemy nowe zlecenie do slownika zlecen
+                    replies[id] = 0;
                 }
                 
                 if(shouldSendReply(recv_pkt)){
@@ -83,14 +85,14 @@ void *startKomWatek(void *ptr)
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
-                    lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
-                    lista_ogloszen.erease(id);
+                    // lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
+                    lista_ogloszen.erease(id); // jezeli odpowiadam to nie ubiegam sie
                     
                 }
                 else{
                     
 #ifdef DEBUG_WK
-                    debug("Dodaje proces: %d do kolejki", recv_pkt.src);
+                    debug("Nie jestem w stanie wziac to zadanie, usuwam id: %d", id);
 #endif
 
                 }
@@ -99,44 +101,22 @@ void *startKomWatek(void *ptr)
             }
             case REPLY_ZLECENIE_ZGODA:{
                 // trzeba zliczac ile zgód się otrzymało
-                ile_zgod++; // jezeli ile_zgod = size - 1 staraj sie wejsc do sekcji krytycznej
+                replies[id]++;
+                // ile_zgod++; // jezeli ile_zgod = size - 1 staraj sie wejsc do sekcji krytycznej
 #ifdef DEBUG_WK
                     debug("Otrzymalem zgode, w sumie: %d ", ile_zgod);
 #endif
-                if(ile_zgod==size-1){ // and cs-rozmiar_kolejki!=0
-
-
+                if(replies[id]==size-1){ // and cs-rozmiar_kolejki!=0
                     changeState(waitingForEquipment);
-                    ile_zgod = 0;
+                    // replies[id] = 0;
                     moje_zlecenie.id = id;
                     moje_zlecenie.rodzaj_sprzetu = rodzaj_sprzetu;
 #ifdef DEBUG_WK
                     debug("Zaraz zaczne pracę nad id: %d szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
 #endif  
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
-                    switch(rodzaj_sprzetu){
-                        case obslugaTrawnika: {
-                            broadcastPacket(new_pkt, REQ_SP_TRAWNIK);
-                            break;
-                        }
-
-                        case przycinanieZywoplotu: {
-                            broadcastPacket(new_pkt, REQ_SP_PRZYCINANIE);
-                            break;
-                        }
-
-                        case wyganianieSzkodnikow: {
-                            broadcastPacket(new_pkt, REQ_SP_WYGANIANIE);
-                            break;
-                        }
-                        default:
-                            debug("Jakis dziwny sprzet");
-                            break;
-                    }
-                    
+                    broadcastPacket(new_pkt, REQ_SPRZET);
                     free(new_pkt);
-                    
-                }
                 break;
             }
             case REQ_SPRZET:{
@@ -145,16 +125,17 @@ void *startKomWatek(void *ptr)
                     sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
                     free(new_pkt);
                 }
-                else{
-                    // dodaj do kolejki czekajacych na ten sam sprzet
-                    processWaitingForMyEquipment[recv_pkt.src] = rodzaj_sprzetu; // mutex here?
+                else{  // dodaj do kolejki czekajacych na ten sam sprzet
+                    pthread_mutex_lock(&equipmentMut);
+                    processWaitingForMyEquipment[recv_pkt.src] = id; // mutex here?
+                    pthread_mutex_unlock(&equipmentMut);
                 }
                 break;
             }
 
-            case REPLY_SPRZET:{
-                
-                if(stan==waitingForEquipment){
+            case REPLY_SPRZET:{         
+                if(stan==waitingForEquipment)
+                {
                     ile_zgod_sprzet++;
                     if(ile_zgod_sprzet==size-1){ // 
 #ifdef DEBUG_WK
@@ -167,34 +148,13 @@ void *startKomWatek(void *ptr)
                     debug(">>> Zmieniłem stan na workingInGarden");
 #endif       
                     
+                    }
+                    else
+                    {
+                        debug("UWAGA! Nie poszukuje sprzetu!");
+                    }
+                
                 }
-                else{
-                    debug("UWAGA! Nie poszukuje sprzetu!");
-                }
-                break;
-            }
-            case REL_SPRZET:{
-                breakl
-            }
-            case REL_SP_TRAWNIK:{
-                pthread_mutex_lock(&csMut);
-                cs--; // sekcja krytyczna sie zmniejsza
-                pthread_mutex_unlock(&csMut);
-                changeState(waitingForJob);
-                break;
-            }
-            case REL_SP_PRZYCINANIE:{
-                pthread_mutex_lock(&csMut);
-                cs--; // sekcja krytyczna sie zmniejsza
-                pthread_mutex_unlock(&csMut);
-                changeState(waitingForJob);
-                break;
-            }
-            case REL_SP_WYGANIANIE:{
-                pthread_mutex_lock(&csMut);
-                cs--; // sekcja krytyczna sie zmniejsza
-                pthread_mutex_unlock(&csMut);
-                changeState(waitingForJob);
                 break;
             }
             default:

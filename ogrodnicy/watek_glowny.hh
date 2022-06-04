@@ -3,5 +3,5 @@
 
 /* pętla główna aplikacji: zmiany stanów itd */
 void mainLoop();
-
+void cleanAfterJob();
 #endif

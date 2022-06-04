@@ -38,7 +38,7 @@ void mainLoop()
                 sleep(10); // zaznajamia sie z literatura zlecenia
                 
 
-                // o który sprzęt ubiega się ogrodnik?
+                
 //                 changeState(workingInGarden);
 // #ifdef DEBUG_WG
 //                 debug(">>> Zmieniam stan na workingInGarden");
@@ -51,21 +51,10 @@ void mainLoop()
                 debug("Ogrodnik: wykonuje - %s - przez %d sekund",tag2job_name[moje_zlecenie.rodzaj_sprzetu], r);
                 sleep(r);
 
-                std::map<int, int>::iterator it = processWaitingForMyEquipment.begin();
-                while (it!=waitingForEquipment.end()){ // wysyla kazdemu, moze powinien wyslac tylko jednemu?
-                        int idd = it->first;
-#ifdef DEBUG_WG
-                debug("Juz nie potrzebuje sprzetu, wysylam REPLY do: %d", idd);
-#endif
-                        packet_t *new_pkt = preparePacket(lamportClock, idd, zlecenia[idd].rodzaj_sprzetu, -1);
-                        sendPacket(new_pkt, idd, REPLY_SPRZET); // nie zachowuje kolejnosci
-                        free(new_pkt);
-                        processWaitingForMyEquipment.erase(idd);
-                    }
-                    it++;
-                }
+                cleanAfterJob();
                 changeState(waitingForJob);
                 debug("Zadanie wykonane");
+
                 break;
             }
             default: {
@@ -79,3 +68,25 @@ void mainLoop()
         
     }
 }
+
+void cleanAfterJob(){
+        moje_zlecenie.id = -1;
+        moje_zlecenie.rodzaj_sprzetu = -1;
+        pthread_mutex_lock(&equipmentMut);
+        std::map<int, int>::iterator it = processWaitingForMyEquipment.begin();
+        while (it!=waitingForEquipment.end()){ // wysyla kazdemu, moze powinien wyslac tylko jednemu?
+            int dst = it->first; // src
+            int id_zlec = it->second;
+#ifdef DEBUG_WG
+                debug("Juz nie potrzebuje sprzetu, wysylam REPLY do: %d", idd);
+#endif
+            packet_t *new_pkt = preparePacket(lamportClock, id_zlec, zlecenia[id_zlec].rodzaj_sprzetu, -1);
+            sendPacket(new_pkt, idd, REPLY_SPRZET); // nie zachowuje kolejnosci
+            free(new_pkt);
+            processWaitingForMyEquipment.erase(dst);
+            it++;
+        }
+        pthread_mutex_unlock(&equipmentMut);
+            
+}
+
