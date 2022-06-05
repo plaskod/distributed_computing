@@ -14,6 +14,7 @@ pthread_mutex_t stateMut = PTHREAD_MUTEX_INITIALIZER; // na zmiane stanu
 pthread_mutex_t lamportMut = PTHREAD_MUTEX_INITIALIZER; // zmiana zegaru lamporta
 pthread_mutex_t csMut = PTHREAD_MUTEX_INITIALIZER; // zmiana rozmiaru sekcji krytycznej
 pthread_mutex_t equipmentMut = PTHREAD_MUTEX_INITIALIZER; // zmiana na liscie procesow czekajacych na sprzet
+pthread_mutex_t readingMut = PTHREAD_MUTEX_INITIALIZER; 
 
 int lamportClock = 0;
 int cs = 0;
@@ -26,6 +27,8 @@ std::map<int, int> lista_ogloszen;
 std::map<int, zlecenie_t> zlecenia;
 zlecenie_t moje_zlecenie = {-1, -1};
 std::map<int, std::string> tag2job_name = {{0, "obslugat trawnika"}, {1, "przycianaie zywoplotu"}, {2, "wyganianie szkodnikow"}};
+bool readLiterature = false;
+
 void check_thread_support(int provided)
 {
     printf("THREAD SUPPORT: %d\n", provided);
@@ -96,7 +99,7 @@ void finalizuj()
 {
     pthread_mutex_destroy( &stateMut);
     pthread_mutex_destroy( &lamportMut);
-    pthread_mutex_destroy( &csMut);
+    pthread_mutex_destroy( &readingMut);
     pthread_mutex_destroy( &equipmentMut);
     /* Czekamy, aż wątek potomny się zakończy */
     println("czekam na wątek \"komunikacyjny\"\n" );

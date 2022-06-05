@@ -41,10 +41,11 @@ extern int ile_zgod;
 extern int ile_zgod_sprzet;
 extern std::map <int, std::string> tag2job_name;
 extern std::map <int, int> replies;
+extern bool readLiterature;
 
 extern pthread_mutex_t stateMut;
 extern pthread_mutex_t lamportMut;
-extern pthread_mutex_t csMut;
+extern pthread_mutex_t readingMut;
 extern pthread_mutex_t equipmentMut;
 
 

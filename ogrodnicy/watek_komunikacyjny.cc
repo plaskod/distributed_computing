@@ -7,7 +7,7 @@ void *startKomWatek(void *ptr)
     packet_t recv_pkt;
     int id;
     int rodzaj_sprzetu;
-
+    sleep(1 + rand() % 3);
     while(1) {
 #ifdef DEBUG_WK
                 debug("*** LISTENING ***");
@@ -28,9 +28,17 @@ void *startKomWatek(void *ptr)
 #endif
 
                 if(!heardAboutThisJob(recv_pkt)){
+
+#ifdef DEBUG_WK
+                
+                debug(">>>Widze nowe zlecenie: %d dodaje na liste ogloszen", id);
+#endif
                     lista_ogloszen[id] = -1; // dodajemy nowe zlecenie do listy ogloszen
                     zlecenia[id] = {id, rodzaj_sprzetu}; // dodajemy nowe zlecenie do slownika zlecen
                     replies[id] = 0;
+                }
+                else{
+                    break;
                 }
 
 
@@ -46,20 +54,24 @@ void *startKomWatek(void *ptr)
                             broadcastPacket(new_pkt, REQ_ZLECENIE);
                             lista_ogloszen[idd] = lamportClock; // nie usuwam z listy ogloszen, kazdy kolejny REQ ponownie by to dodawal
                             free(new_pkt);
-                            break;
+                            goto outer;
                         }
                         it++;
                     }
                 }
 
+                outer:
                 break;
             }
             case REQ_ZLECENIE:{    
 #ifdef DEBUG_WK
-                debug(">>> Otrzymalem REQ_ZLECENIE od: %d", recv_pkt.src);
+                debug("------------------------------- Otrzymalem REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.ts, id);
 #endif        
 
                 if(!heardAboutThisJob(recv_pkt)){
+#ifdef DEBUG_WK
+                debug("************ Pierwszy raz slysze o zleceniu %d od: %d", id, recv_pkt.src);
+#endif        
                     lista_ogloszen[id] = -1; 
                     zlecenia[id] = {id, rodzaj_sprzetu};// dodajemy nowe zlecenie do slownika zlecen
                     replies[id] = 0;
@@ -67,19 +79,28 @@ void *startKomWatek(void *ptr)
                 
                 if(shouldSendReply(recv_pkt)){
 #ifdef DEBUG_WK
-                debug(">>> Odpowiadam na REQ_ZLECENIE od: %d", recv_pkt.src);
+                debug("------------------------------- Odpowiadam REPLY_ZLECENIE na REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.ts, id);
 #endif
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
-                    lista_ogloszen[id] = recv_pkt.ts; // jezeli odpowiadam to nie ubiegam sie
+                    lista_ogloszen[id] = recv_pkt.ts; // zaznaczam
+
+                    if(recv_pkt.src!=rank){
+#ifdef DEBUG_WK
+                        debug("------------------------------- USUWAM zlecenie: %d, zegar lamporta ogrodnika: %d == %d", id, recv_pkt.src, recv_pkt.ts);
+#endif
+                        replies[id] = 0;
+                    }
+
+                    
                     // lista_ogloszen.erease(id); // jezeli odpowiadam to nie ubiegam sie
                     
                 }
                 else{
                     
 #ifdef DEBUG_WK
-                    debug("Nie jestem w stanie podjac się tego zadania, usuwam id: %d", id);
+                    debug("------------------------------- IGNORUJE ogrodnika: %d z z ts=%d, ubiegajacego sie o zlecenie %d",recv_pkt.src, recv_pkt.ts, id);
 #endif
                     
                 }
@@ -88,21 +109,27 @@ void *startKomWatek(void *ptr)
             }
             case REPLY_ZLECENIE_ZGODA:{
                 // trzeba zliczac ile zgód się otrzymało
-                replies[id]++;
+                replies[id] = replies[id]+1;
                 // ile_zgod++; // jezeli ile_zgod = size - 1 staraj sie wejsc do sekcji krytycznej
 #ifdef DEBUG_WK
-                    debug("Otrzymalem zgode, w sumie: %d ", ile_zgod);
+                    debug("------------------------------- Otrzymalem zgode na zadanie %d od %d z ts=%d, w sumie: %d z %d", id, recv_pkt.src, recv_pkt.ts, replies[id], size-1);
 #endif
-                if(replies[id]==size-1){ // and cs-rozmiar_kolejki!=0
+                if(replies[id]==size-1 && stan==waitingForJob){ // and cs-rozmiar_kolejki!=0
                     changeState(waitingForEquipment);
                     // replies[id] = 0;
                     moje_zlecenie.id = id;
                     moje_zlecenie.rodzaj_sprzetu = rodzaj_sprzetu;
 #ifdef DEBUG_WK
-                    debug("Zaraz zaczne pracę nad id: %d szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
+                    debug("------------------------------- Zaraz zaczne pracę nad id: %d szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
 #endif  
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     broadcastPacket(new_pkt, REQ_SPRZET);
+#ifdef DEBUG_WK
+                    debug("------------------------------- BROADCAST REQ_SPRZET");
+#endif
+                    pthread_mutex_lock(&readingMut);
+                    readLiterature = true;
+                    pthread_mutex_unlock(&readingMut);
                     free(new_pkt);
 
                 }
@@ -111,12 +138,22 @@ void *startKomWatek(void *ptr)
             }
 
             case REQ_SPRZET:{
+#ifdef DEBUG_WK
+                    debug("-------------------------------------------------------------- Otrzymalem REQ_SPRZET od %d z ts=%d", recv_pkt.src, recv_pkt.ts);
+#endif
                 if(shouldGrantEquipment(recv_pkt)){
+#ifdef DEBUG_WK
+                    debug("-------------------------------------------------------------- Udzielam REPLY_SPRZET ogrodnikowi: %d z ts=%d", recv_pkt.src, recv_pkt.ts);
+#endif
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
                     free(new_pkt);
                 }
                 else{  // dodaj do kolejki czekajacych na ten sam sprzet
+#ifdef DEBUG_WK
+                    debug("-------------------------------------------------------------- DODAJE ogrodnika do kolejki czekajacych na sprzet: %d", recv_pkt.src);
+#endif
+
                     pthread_mutex_lock(&equipmentMut);
                     processWaitingForMyEquipment[recv_pkt.src] = id; // mutex here?
                     pthread_mutex_unlock(&equipmentMut);
@@ -130,22 +167,23 @@ void *startKomWatek(void *ptr)
                     ile_zgod_sprzet++;
                     if(ile_zgod_sprzet==size-1){ // 
 #ifdef DEBUG_WK
-                        debug("Czekajac na sprzet, odebralem juz wszystkie zgody! Zaraz zacznę pracę");
+                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem juz wszystkie zgody! Zaraz zacznę pracę");
 #endif
                         ile_zgod_sprzet = 0;
                         changeState(workingInGarden);
 
 #ifdef DEBUG_WK
-                    debug(">>> Zmieniłem stan na workingInGarden");
+                    debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden");
 #endif       
                     
                     }
-                    else
-                    {
-                        debug("UWAGA! Nie poszukuje sprzetu!");
-                    }
-                
                 }
+                else
+                {
+                    debug("UWAGA! Nie poszukuje sprzetu!");
+                }
+            
+                
                 break;
             }
             default:
@@ -175,14 +213,17 @@ bool shouldSendRequest(packet_t pkt){
 }
 
 bool shouldSendReply(packet_t pkt){
+    if(rank = pkt.src){ return true;}
     if(stan==waitingForJob){
-        if(rank = pkt.src){ return true;}
-        else if((pkt.ts < lamportClock) || (pkt.ts == lamportClock && pkt.src < rank)) {
+        if((pkt.ts < lamportClock) || (pkt.ts == lamportClock && pkt.src < rank)) {
             return true;
+        }
+        else{
+            return false;
         }
     }
 
-    return false;
+    return true;
 }
 
 bool shouldGrantEquipment(packet_t pkt){

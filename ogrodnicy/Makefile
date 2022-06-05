@@ -12,7 +12,7 @@ clean:
 	rm main
 
 run: main
-	mpirun -np 2 --oversubscribe ./main
+	mpirun -np 3 --oversubscribe ./main
 
 # rerun: $(SOURCES) $(HEADERS)
 # 	rm main a.out

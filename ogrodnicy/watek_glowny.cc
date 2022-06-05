@@ -21,9 +21,6 @@ void mainLoop()
                 packet_t *pkt = preparePacket(lamportClock, id_zlecenie, rodzaj_sprzetu, -1);
                 broadcastPacket(pkt, NOWE_ZLECENIE_OD_INSTYTUTU);
                 id_zlecenie++;
-                pthread_mutex_lock(&csMut);
-                cs++; // sekcja krytyczna sie powieksza
-                pthread_mutex_unlock(&csMut);
 
                 free(pkt);
                 break;
@@ -34,8 +31,16 @@ void mainLoop()
             }
             
             case waitingForEquipment:{
-                debug("Ogrodnik: zaznajamiam sie z literatura na 10 sekundy");
-                sleep(10); // zaznajamia sie z literatura zlecenia
+                if(readLiterature){
+                    debug("Ogrodnik: zaznajamiam sie z literatura");
+                    pthread_mutex_lock(&readingMut);
+                    readLiterature = false;
+                    pthread_mutex_unlock(&readingMut);
+                    sleep(5);
+                    debug("Ogrodnik: skonczylem czytac literature");
+                }
+                
+                // sleep(10); // zaznajamia sie z literatura zlecenia
                 
 
                 
@@ -48,7 +53,7 @@ void mainLoop()
 
             case workingInGarden:{
                 int r = 1 + rand() % 5;
-                debug("Ogrodnik: wykonuje - %s - przez %d sekund",tag2job_name[moje_zlecenie.rodzaj_sprzetu], r);
+                debug("Ogrodnik: wykonuje - %c - przez %d sekund",moje_zlecenie.rodzaj_sprzetu, r);
                 sleep(r);
 
                 cleanAfterJob();
@@ -78,14 +83,14 @@ void cleanAfterJob(){
             int dst = it->first; // src
             int id_zlec = it->second;
 #ifdef DEBUG_WG
-                debug("Juz nie potrzebuje sprzetu, wysylam REPLY do: %d", idd);
+                debug("Juz nie potrzebuje sprzetu, wysylam REPLY do: %d", dst);
 #endif
             packet_t *new_pkt = preparePacket(lamportClock, id_zlec, zlecenia[id_zlec].rodzaj_sprzetu, -1);
             sendPacket(new_pkt, dst, REPLY_SPRZET); // nie zachowuje kolejnosci
             free(new_pkt);
-            processWaitingForMyEquipment.erase(dst);
             it++;
         }
+        processWaitingForMyEquipment.clear();
         pthread_mutex_unlock(&equipmentMut);
             
 }
