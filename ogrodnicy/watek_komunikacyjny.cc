@@ -104,10 +104,14 @@ void *startKomWatek(void *ptr)
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     broadcastPacket(new_pkt, REQ_SPRZET);
                     free(new_pkt);
+
+                }
                 break;
+                
             }
+
             case REQ_SPRZET:{
-                if(shouldGrantEquipment(pkt)){
+                if(shouldGrantEquipment(recv_pkt)){
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
                     sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
                     free(new_pkt);

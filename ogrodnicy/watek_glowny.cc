@@ -74,14 +74,14 @@ void cleanAfterJob(){
         moje_zlecenie.rodzaj_sprzetu = -1;
         pthread_mutex_lock(&equipmentMut);
         std::map<int, int>::iterator it = processWaitingForMyEquipment.begin();
-        while (it!=waitingForEquipment.end()){ // wysyla kazdemu, moze powinien wyslac tylko jednemu?
+        while (it!=processWaitingForMyEquipment.end()){ // wysyla kazdemu, moze powinien wyslac tylko jednemu?
             int dst = it->first; // src
             int id_zlec = it->second;
 #ifdef DEBUG_WG
                 debug("Juz nie potrzebuje sprzetu, wysylam REPLY do: %d", idd);
 #endif
             packet_t *new_pkt = preparePacket(lamportClock, id_zlec, zlecenia[id_zlec].rodzaj_sprzetu, -1);
-            sendPacket(new_pkt, idd, REPLY_SPRZET); // nie zachowuje kolejnosci
+            sendPacket(new_pkt, dst, REPLY_SPRZET); // nie zachowuje kolejnosci
             free(new_pkt);
             processWaitingForMyEquipment.erase(dst);
             it++;

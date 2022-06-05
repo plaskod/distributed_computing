@@ -39,7 +39,7 @@ extern int lamportClock;
 extern int cs;
 extern int ile_zgod;
 extern int ile_zgod_sprzet;
-extern std::map <int, string> tag2job_name;
+extern std::map <int, std::string> tag2job_name;
 extern std::map <int, int> replies;
 
 extern pthread_mutex_t stateMut;
@@ -60,6 +60,7 @@ extern pthread_mutex_t equipmentMut;
 #define REL_SP_PRZYCINANIE 180 // tag release o sprzet P
 #define REL_SP_WYGANIANIE 190 // tag release o sprzet W
 #define REPLY_SPRZET 200
+#define REQ_SPRZET 210
 
 
 /* to może przeniesiemy do global... */

@@ -97,7 +97,7 @@ void finalizuj()
     pthread_mutex_destroy( &stateMut);
     pthread_mutex_destroy( &lamportMut);
     pthread_mutex_destroy( &csMut);
-    pthread_mutex_destroy( &lista_ogloszenMut);
+    pthread_mutex_destroy( &equipmentMut);
     /* Czekamy, aż wątek potomny się zakończy */
     println("czekam na wątek \"komunikacyjny\"\n" );
     pthread_join(threadKom,NULL);

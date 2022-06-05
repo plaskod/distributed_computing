@@ -6,4 +6,5 @@ void *startKomWatek(void *ptr);
 bool heardAboutThisJob(packet_t pkt);
 bool shouldSendRequest(packet_t pkt);
 bool shouldSendReply(packet_t pkt);
+bool shouldGrantEquipment(packet_t pkt);
 #endif
