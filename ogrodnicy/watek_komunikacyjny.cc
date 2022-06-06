@@ -7,16 +7,21 @@ void *startKomWatek(void *ptr)
     packet_t recv_pkt;
     int id;
     int rodzaj_sprzetu;
-    sleep(1 + rand() % 3);
+    // sleep(1 + rand() % 3);
     while(1) {
 #ifdef DEBUG_WK
                 debug("*** LISTENING ***");
 #endif
         MPI_Recv(&recv_pkt, 1, MPI_PAKIET_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
         pthread_mutex_lock(&lamportMut);
-        lamportClock = (recv_pkt.ts > lamportClock ? recv_pkt.ts : lamportClock) + 1;
+        // lamportClock = (recv_pkt.ts > lamportClock ? recv_pkt.ts : lamportClock) + 1;
+        lamportClock = std::max(recv_pkt.ts, lamportClock);
+        lamportClock++;
         pthread_mutex_unlock(&lamportMut);
-
+#ifdef DEBUG_WK
+                
+                debug("++++++++++++++++++++ WSZYSTKO: SRC %d, TS %d, DATA %d, TAG %d ",recv_pkt.src, recv_pkt.ts, recv_pkt.data, status.MPI_TAG);
+#endif
         id = recv_pkt.zlecenie_id;
         rodzaj_sprzetu = recv_pkt.rodzaj_sprzetu;
         
@@ -38,6 +43,10 @@ void *startKomWatek(void *ptr)
                     replies[id] = 0;
                 }
                 else{
+#ifdef DEBUG_WK
+                
+                debug(">>>Widzialem juz zlecenie: %d", id );
+#endif
                     break;
                 }
 
@@ -46,23 +55,25 @@ void *startKomWatek(void *ptr)
                     std::map<int, int>::iterator it = lista_ogloszen.begin();
                     while (it!=lista_ogloszen.end()){
                         if(it->second == -1){
+                            
                             int idd = it->first;
+                            lista_ogloszen[idd] = lamportClock; 
 #ifdef DEBUG_WK
                             debug("Iteruje po: %d z rodzajem sprzetu: %d", idd, zlecenia[idd].rodzaj_sprzetu);
 #endif
-                            packet_t *new_pkt = preparePacket(lamportClock, idd, zlecenia[idd].rodzaj_sprzetu, -1);
+                            packet_t *new_pkt = preparePacket(lamportClock, idd, zlecenia[idd].rodzaj_sprzetu, lamportClock);
                             broadcastPacket(new_pkt, REQ_ZLECENIE);
-                            lista_ogloszen[idd] = lamportClock; // nie usuwam z listy ogloszen, kazdy kolejny REQ ponownie by to dodawal
+                            // lista_ogloszen[idd] = lamportClock; // nie usuwam z listy ogloszen, kazdy kolejny REQ ponownie by to dodawal
                             free(new_pkt);
-                            goto outer;
+                            break;
                         }
                         it++;
                     }
                 }
 
-                outer:
-                break;
-            }
+                
+                
+            }break;
             case REQ_ZLECENIE:{    
 #ifdef DEBUG_WK
                 debug("------------------------------- Otrzymalem REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.ts, id);
@@ -81,7 +92,7 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                 debug("------------------------------- Odpowiadam REPLY_ZLECENIE na REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.ts, id);
 #endif
-                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
+                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
                     lista_ogloszen[id] = recv_pkt.ts; // zaznaczam
@@ -105,8 +116,8 @@ void *startKomWatek(void *ptr)
                     
                 }
                 
-                break;
-            }
+                
+            }break;
             case REPLY_ZLECENIE_ZGODA:{
                 // trzeba zliczac ile zgód się otrzymało
                 replies[id] = replies[id]+1;
@@ -122,7 +133,7 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                     debug("------------------------------- Zaraz zaczne pracę nad id: %d szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
 #endif  
-                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
+                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     broadcastPacket(new_pkt, REQ_SPRZET);
 #ifdef DEBUG_WK
                     debug("------------------------------- BROADCAST REQ_SPRZET");
@@ -133,9 +144,9 @@ void *startKomWatek(void *ptr)
                     free(new_pkt);
 
                 }
-                break;
                 
-            }
+                
+            }break;
 
             case REQ_SPRZET:{
 #ifdef DEBUG_WK
@@ -145,7 +156,7 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                     debug("-------------------------------------------------------------- Udzielam REPLY_SPRZET ogrodnikowi: %d z ts=%d", recv_pkt.src, recv_pkt.ts);
 #endif
-                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, -1);
+                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
                     free(new_pkt);
                 }
@@ -158,8 +169,8 @@ void *startKomWatek(void *ptr)
                     processWaitingForMyEquipment[recv_pkt.src] = id; // mutex here?
                     pthread_mutex_unlock(&equipmentMut);
                 }
-                break;
-            }
+                // break;
+            }break;
 
             case REPLY_SPRZET:{         
                 if(stan==waitingForEquipment)
@@ -184,12 +195,12 @@ void *startKomWatek(void *ptr)
                 }
             
                 
-                break;
-            }
+                
+            }break;
             default:
                 debug("O panie!");
                 break;
-        }
+        } 
     }
 }
 
@@ -213,17 +224,19 @@ bool shouldSendRequest(packet_t pkt){
 }
 
 bool shouldSendReply(packet_t pkt){
-    if(rank = pkt.src){ return true;}
-    if(stan==waitingForJob){
-        if((pkt.ts < lamportClock) || (pkt.ts == lamportClock && pkt.src < rank)) {
-            return true;
-        }
-        else{
-            return false;
-        }
-    }
+    if(rank == pkt.src){ return true;}
+    if((pkt.data < lamportClock) || (pkt.data == lamportClock && pkt.src < rank)){return true;}
+    return false;
+    // if(stan==waitingForJob){
+    //     if((pkt.ts < lamportClock) || (pkt.ts == lamportClock && pkt.src < rank)) {
+    //         return true;
+    //     }
+    //     else{
+    //         return false;
+    //     }
+    // }
 
-    return true;
+    // return true;
 }
 
 bool shouldGrantEquipment(packet_t pkt){

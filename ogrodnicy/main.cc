@@ -128,7 +128,7 @@ void sendPacket(packet_t *pkt, int destination, int tag)
 void broadcastPacket(packet_t *pkt, int tag){
     for(int i=1 ; i<size ; i++) {
 #ifdef DEBUG_BROADCAST
-        debug("Sending packet to: %d", 1);
+        debug("Sending packet to: %d", i);
 #endif
         sendPacket(pkt, i, tag);
     }
@@ -149,9 +149,9 @@ void changeState( state_t newState )
     pthread_mutex_unlock( &stateMut );
 }
 
-packet_t *preparePacket(int lamportClock, int zlecenie_id=-1, int rodzaj_sprzetu=-1, int data=-1){
+packet_t *preparePacket(int lc, int zlecenie_id, int rodzaj_sprzetu, int data){
     packet_t *pkt = (packet_t*)malloc(sizeof(packet_t));
-    pkt->ts = lamportClock;
+    pkt->ts = lc;
     pkt->src = rank;
     pkt->zlecenie_id = zlecenie_id;
     pkt->rodzaj_sprzetu = rodzaj_sprzetu;

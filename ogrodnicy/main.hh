@@ -15,7 +15,7 @@
 /* odkomentować, jeżeli się chce DEBUGI */
 #define DEBUG_WG
 #define DEBUG_WK
-// #define DEBUG_BROADCAST
+#define DEBUG_BROADCAST
 
 /* boolean */
 #define TRUE 1

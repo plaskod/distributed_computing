@@ -18,17 +18,17 @@ void mainLoop()
                 rodzaj_sprzetu = rand()%3; // losowanie zadania 0,1 lub 2
                 debug("Instytut: rozsyłam zadanie: %d - ogrodnik potrzebuje zasobu: %d", id_zlecenie, rodzaj_sprzetu);
 
-                packet_t *pkt = preparePacket(lamportClock, id_zlecenie, rodzaj_sprzetu, -1);
+                packet_t *pkt = preparePacket(-1, id_zlecenie, rodzaj_sprzetu, -1);
                 broadcastPacket(pkt, NOWE_ZLECENIE_OD_INSTYTUTU);
                 id_zlecenie++;
 
                 free(pkt);
-                break;
-            }
+                
+            }break;
 
             case waitingForJob:{
-                break;
-            }
+                
+            }break;
             
             case waitingForEquipment:{
                 if(readLiterature){
@@ -48,8 +48,8 @@ void mainLoop()
 // #ifdef DEBUG_WG
 //                 debug(">>> Zmieniam stan na workingInGarden");
 // #endif            
-                break;
-            }
+                
+            }break;
 
             case workingInGarden:{
                 int r = 1 + rand() % 5;
@@ -60,8 +60,8 @@ void mainLoop()
                 changeState(waitingForJob);
                 debug("Zadanie wykonane");
 
-                break;
-            }
+                
+            } break;
             default: {
                 debug("Nie placa ci za obijanie sie")
                 break;
