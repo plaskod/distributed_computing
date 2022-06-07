@@ -86,6 +86,9 @@ extern std::map<int, int> lista_ogloszen;
 extern std::map<int, zlecenie_t> zlecenia;
 extern std::vector<std::map<int,int>> sprzet;
 extern std::map<int, int> processWaitingForMyEquipment;
+extern std::vector<int> wykonaneZlecenia;
+
+
 
 extern zlecenie_t moje_zlecenie;
 
@@ -113,5 +116,5 @@ void sendPacket(packet_t *pkt, int destination, int tag);
 void changeState( state_t );
 packet_t *preparePacket(int lamportClock, int zlecenie_id, int rodzaj_sprzetu,int data);
 void broadcastPacket(packet_t *pkt, int tag);
-
+void print_vector(const std::vector<int> & vec);
 #endif

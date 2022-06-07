@@ -178,7 +178,7 @@ void *startKomWatek(void *ptr)
                     ile_zgod_sprzet++;
                     if(ile_zgod_sprzet==size-1){ // 
 #ifdef DEBUG_WK
-                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem juz wszystkie zgody! Zaraz zacznę pracę");
+                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem juz wszystkie zgody! Zaraz zacznę pracę nad zleceniem: %d", id);
 #endif
                         ile_zgod_sprzet = 0;
                         changeState(workingInGarden);

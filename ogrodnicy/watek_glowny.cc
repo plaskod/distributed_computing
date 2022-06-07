@@ -11,7 +11,7 @@ void mainLoop()
         switch (stan)
         {
             case inInstitute: {// wysyla co jakis czas zlecenia
-                int r = 1 + rand() % 10;
+                int r = 1 + rand() % 5;
                 debug("Instytut: zasypiam na %d sekund", r);
                 sleep(r);
                 
@@ -53,12 +53,18 @@ void mainLoop()
 
             case workingInGarden:{
                 int r = 1 + rand() % 5;
-                debug("Ogrodnik: wykonuje - %c - przez %d sekund",moje_zlecenie.rodzaj_sprzetu, r);
+                debug("Ogrodnik: wykonuje zlecenie - %d - przez %d sekund", moje_zlecenie.id, r);
                 sleep(r);
-
+                wykonaneZlecenia.push_back(moje_zlecenie.id);
+                debug("Zadanie %d wykonane", moje_zlecenie.id);
+                
+#ifdef DEBUG_WG
+                printf("Wszystkie zadania wykonane przez %d:", rank);
+                print_vector(wykonaneZlecenia);
+#endif
                 cleanAfterJob();
                 changeState(waitingForJob);
-                debug("Zadanie wykonane");
+                
 
                 
             } break;

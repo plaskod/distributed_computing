@@ -28,6 +28,17 @@ std::map<int, zlecenie_t> zlecenia;
 zlecenie_t moje_zlecenie = {-1, -1};
 std::map<int, std::string> tag2job_name = {{0, "obslugat trawnika"}, {1, "przycianaie zywoplotu"}, {2, "wyganianie szkodnikow"}};
 bool readLiterature = false;
+std::vector<int> wykonaneZlecenia;
+
+
+void print_vector(const std::vector<int> & vec)
+{
+    for(auto elem : vec)
+    {
+        std::cout<<elem<<" ";
+    }
+    std::cout<<std::endl;
+}
 
 void check_thread_support(int provided)
 {
