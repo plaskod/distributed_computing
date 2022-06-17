@@ -39,15 +39,7 @@ void mainLoop()
                     sleep(5);
                     debug("Ogrodnik: skonczylem czytac literature");
                 }
-                
-                // sleep(10); // zaznajamia sie z literatura zlecenia
-                
-
-                
-//                 changeState(workingInGarden);
-// #ifdef DEBUG_WG
-//                 debug(">>> Zmieniam stan na workingInGarden");
-// #endif            
+                           
                 
             }break;
 

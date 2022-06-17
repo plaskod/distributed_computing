@@ -7,7 +7,7 @@ void *startKomWatek(void *ptr)
     packet_t recv_pkt;
     int id;
     int rodzaj_sprzetu;
-    // sleep(1 + rand() % 3);
+    
     while(1) {
 #ifdef DEBUG_WK
                 debug("*** LISTENING ***");
@@ -95,11 +95,13 @@ void *startKomWatek(void *ptr)
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
+
                     //lista_ogloszen[id] = -2; // zaznaczam
+
 
                     if(recv_pkt.src!=rank){
 #ifdef DEBUG_WK
-                        debug("------------------------------- USUWAM zlecenie: %d, zegar lamporta ogrodnika: %d == %d", id, recv_pkt.src, recv_pkt.ts);
+                        debug("------------------------------- NIE POWINIENEM ZAJAC SIE TYM ZLECENIEM: %d, zegar lamporta ogrodnika: %d == %d", id, recv_pkt.src, recv_pkt.data);
 #endif
                         replies[id] = 0;
                     }
@@ -119,15 +121,13 @@ void *startKomWatek(void *ptr)
                 
             }break;
             case REPLY_ZLECENIE_ZGODA:{
-                // trzeba zliczac ile zgód się otrzymało
                 replies[id] = replies[id]+1;
-                // ile_zgod++; // jezeli ile_zgod = size - 1 staraj sie wejsc do sekcji krytycznej
 #ifdef DEBUG_WK
                     debug("------------------------------- Otrzymalem zgode na zadanie %d od %d z ts=%d, w sumie: %d z %d", id, recv_pkt.src, recv_pkt.ts, replies[id], size-1);
 #endif
                 if(replies[id]==size-1 && stan==waitingForJob){ // and cs-rozmiar_kolejki!=0
                     changeState(waitingForEquipment);
-                    // replies[id] = 0;
+                    replies[id] = 0;
                     moje_zlecenie.id = id;
                     moje_zlecenie.rodzaj_sprzetu = rodzaj_sprzetu;
 #ifdef DEBUG_WK
@@ -166,10 +166,10 @@ void *startKomWatek(void *ptr)
 #endif
 
                     pthread_mutex_lock(&equipmentMut);
-                    processWaitingForMyEquipment[recv_pkt.src] = id; // mutex here?
+                    processWaitingForMyEquipment[recv_pkt.src] = recv_pkt.data;
                     pthread_mutex_unlock(&equipmentMut);
                 }
-                // break;
+                
             }break;
 
             case REPLY_SPRZET:{         
@@ -205,7 +205,6 @@ void *startKomWatek(void *ptr)
 }
 
 bool heardAboutThisJob(packet_t pkt){
-    //pthread_mutex_lock(&lista_ogloszenMut);
     std::map<int, int>::iterator it = lista_ogloszen.begin();
     while (it!=lista_ogloszen.end()){
         if(pkt.zlecenie_id == it->first){
@@ -234,20 +233,10 @@ bool shouldSendReply(packet_t pkt){
     }
     
     return false;
-    // if(stan==waitingForJob){
-    //     if((pkt.ts < lamportClock) || (pkt.ts == lamportClock && pkt.src < rank)) {
-    //         return true;
-    //     }
-    //     else{
-    //         return false;
-    //     }
-    // }
-
-    // return true;
 }
 
 bool shouldGrantEquipment(packet_t pkt){
-    if(rank==pkt.src) {return true;}
+    if(rank == pkt.src) { return true; }
     else if(stan!=waitingForEquipment){ return true;}
     else if(stan==waitingForEquipment && moje_zlecenie.rodzaj_sprzetu!=pkt.rodzaj_sprzetu){ // mutex here?
         return true;

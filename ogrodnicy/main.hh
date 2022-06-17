@@ -48,7 +48,6 @@ extern pthread_mutex_t lamportMut;
 extern pthread_mutex_t readingMut;
 extern pthread_mutex_t equipmentMut;
 
-
 // typy wiadmości
 #define NOWE_ZLECENIE_OD_INSTYTUTU 100// tag nowe zlecenie od instytutu
 #define REQ_ZLECENIE 110 // tag request o zlecenie
