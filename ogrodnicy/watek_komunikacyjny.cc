@@ -57,7 +57,7 @@ void *startKomWatek(void *ptr)
                         if(it->second == -1){
                             
                             int idd = it->first;
-                            lista_ogloszen[idd] = lamportClock; 
+                            lista_ogloszen[idd] = lamportClock; // lamportCLock kiedy wyslalem request 
 #ifdef DEBUG_WK
                             debug("Iteruje po: %d z rodzajem sprzetu: %d", idd, zlecenia[idd].rodzaj_sprzetu);
 #endif
@@ -95,7 +95,7 @@ void *startKomWatek(void *ptr)
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
                     free(new_pkt);
-                    lista_ogloszen[id] = recv_pkt.ts; // zaznaczam
+                    //lista_ogloszen[id] = -2; // zaznaczam
 
                     if(recv_pkt.src!=rank){
 #ifdef DEBUG_WK
@@ -225,7 +225,14 @@ bool shouldSendRequest(packet_t pkt){
 
 bool shouldSendReply(packet_t pkt){
     if(rank == pkt.src){ return true;}
-    if((pkt.data < lamportClock) || (pkt.data == lamportClock && pkt.src < rank)){return true;}
+    // if(lista_ogloszen[pkt.zlecenie_id]==-2){return true;}
+    if(lista_ogloszen[pkt.zlecenie_id]!=-1){
+        if((pkt.data < lista_ogloszen[pkt.zlecenie_id]) || (pkt.data == lista_ogloszen[pkt.zlecenie_id] && pkt.src < rank)){return true;}
+    }
+    else{
+        if((pkt.data < lamportClock) || (pkt.data == lamportClock && pkt.src < rank)){return true;}
+    }
+    
     return false;
     // if(stan==waitingForJob){
     //     if((pkt.ts < lamportClock) || (pkt.ts == lamportClock && pkt.src < rank)) {

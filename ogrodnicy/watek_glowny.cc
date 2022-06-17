@@ -11,7 +11,7 @@ void mainLoop()
         switch (stan)
         {
             case inInstitute: {// wysyla co jakis czas zlecenia
-                int r = 1 + rand() % 5;
+                int r = 1 + rand() % 8;
                 debug("Instytut: zasypiam na %d sekund", r);
                 sleep(r);
                 
