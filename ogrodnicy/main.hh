@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <queue>
 #include <vector>
+#include <algorithm>
 /* odkomentować, jeżeli się chce DEBUGI */
 #define DEBUG_WG
 #define DEBUG_WK
@@ -38,7 +39,7 @@ extern int size;
 extern int lamportClock; 
 extern int cs;
 extern int ile_zgod;
-extern int ile_zgod_sprzet;
+extern int ack_counter;
 extern std::map <int, std::string> tag2job_name;
 extern std::map <int, int> replies;
 extern bool readLiterature;
@@ -52,16 +53,16 @@ extern pthread_mutex_t equipmentMut;
 #define NOWE_ZLECENIE_OD_INSTYTUTU 100// tag nowe zlecenie od instytutu
 #define REQ_ZLECENIE 110 // tag request o zlecenie
 #define REPLY_ZLECENIE_ZGODA 120 // tag zgoda lub odmowa
-#define REPLY_EQUIPMMENT_zGODA 130
+#define REPLY_EQUIPMMENT_ZGODA 130
 #define REQ_SP_TRAWNIK 140 // tag request o sprzet T
 #define REQ_SP_PRZYCINANIE 150 // tag request o sprzet P
 #define REQ_SP_WYGANIANIE 160 // tag request o sprzet W
 #define REL_SP_TRAWNIK 170 // tag release o sprzet T
 #define REL_SP_PRZYCINANIE 180 // tag release o sprzet P
 #define REL_SP_WYGANIANIE 190 // tag release o sprzet W
-#define REPLY_SPRZET 200
+#define ACK_SPRZET 200
 #define REQ_SPRZET 210
-
+#define RELEASE_SPRZET 220
 
 /* to może przeniesiemy do global... */
 
@@ -83,7 +84,9 @@ extern MPI_Datatype MPI_PAKIET_T;
 
 extern std::map<int, int> lista_ogloszen;
 extern std::map<int, zlecenie_t> zlecenia;
-extern std::vector<std::map<int,int>> sprzet;
+// extern std::vector<std::map<int,int>> sprzet;
+extern std::map<int, std::map<int, int> > equipmentQueue;
+
 extern std::map<int, int> processWaitingForMyEquipment;
 extern std::vector<int> wykonaneZlecenia;
 

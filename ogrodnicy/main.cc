@@ -19,17 +19,17 @@ pthread_mutex_t readingMut = PTHREAD_MUTEX_INITIALIZER;
 int lamportClock = 0;
 int cs = 0;
 int ile_zgod = 0;
-int ile_zgod_sprzet = 0;
+int ack_counter = 0;
 int timestamps[LICZBA_OGRODNIKOW] = {0};
 std::map<int, int> processWaitingForMyEquipment;
 std::map<int, int> replies; // odpowiedzi od innych procesow, id zlecenia (key)
 std::map<int, int> lista_ogloszen;
 std::map<int, zlecenie_t> zlecenia;
 zlecenie_t moje_zlecenie = {-1, -1};
-std::map<int, std::string> tag2job_name = {{0, "obslugat trawnika"}, {1, "przycianaie zywoplotu"}, {2, "wyganianie szkodnikow"}};
+std::map<int, std::string> tag2job_name = {{0, "obsluga trawnika"}, {1, "przycianaie zywoplotu"}, {2, "wyganianie szkodnikow"}};
 bool readLiterature = false;
 std::vector<int> wykonaneZlecenia;
-
+std::map<int, std::map<int, int> > equipmentQueue;
 
 void print_vector(const std::vector<int> & vec)
 {

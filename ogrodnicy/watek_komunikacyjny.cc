@@ -125,19 +125,23 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                     debug("------------------------------- Otrzymalem zgode na zadanie %d od %d z ts=%d, w sumie: %d z %d", id, recv_pkt.src, recv_pkt.ts, replies[id], size-1);
 #endif
-                if(replies[id]==size-1 && stan==waitingForJob){ // and cs-rozmiar_kolejki!=0
+                if(replies[id]==size-1 && stan==waitingForJob){ 
                     changeState(waitingForEquipment);
                     replies[id] = 0;
                     moje_zlecenie.id = id;
                     moje_zlecenie.rodzaj_sprzetu = rodzaj_sprzetu;
+                    //int request_lamport_clock = lamportClock;
 #ifdef DEBUG_WK
-                    debug("------------------------------- Zaraz zaczne pracę nad id: %d szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
+                    debug("------------------------------- Zaraz zaczne pracę nad id: %d ide szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
 #endif  
+
+                    // ADD READING LITERATURE HERE
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     broadcastPacket(new_pkt, REQ_SPRZET);
 #ifdef DEBUG_WK
                     debug("------------------------------- BROADCAST REQ_SPRZET");
 #endif
+                    //equipmentQueue[rodzaj_sprzetu].insert({rank, request_lamport_clock});
                     pthread_mutex_lock(&readingMut);
                     readLiterature = true;
                     pthread_mutex_unlock(&readingMut);
@@ -150,42 +154,64 @@ void *startKomWatek(void *ptr)
 
             case REQ_SPRZET:{
 #ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- Otrzymalem REQ_SPRZET od %d z ts=%d", recv_pkt.src, recv_pkt.ts);
+                    debug("-------------------------------------------------------------- Otrzymalem REQ_SPRZET od %d z ts=%d, DODAJE OGRODNIKA DO KOLEJKI!", recv_pkt.src, recv_pkt.ts);
 #endif
-                if(shouldGrantEquipment(recv_pkt)){
-#ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- Udzielam REPLY_SPRZET ogrodnikowi: %d z ts=%d", recv_pkt.src, recv_pkt.ts);
-#endif
+                    equipmentQueue[rodzaj_sprzetu].insert({recv_pkt.src, recv_pkt.data});
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
-                    sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
-                    free(new_pkt);
-                }
-                else{  // dodaj do kolejki czekajacych na ten sam sprzet
+                    sendPacket(new_pkt, recv_pkt.src, ACK_SPRZET);
 #ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- DODAJE ogrodnika do kolejki czekajacych na sprzet: %d", recv_pkt.src);
+                    debug("-------------------------------------------------------------- Wysylalem ACK_SPRZET do %d", recv_pkt.src);
 #endif
+                    free(new_pkt);
+//                 if(shouldGrantEquipment(recv_pkt)){
+// #ifdef DEBUG_WK
+//                     debug("-------------------------------------------------------------- Udzielam REPLY_SPRZET ogrodnikowi: %d z ts=%d", recv_pkt.src, recv_pkt.ts);
+// #endif
+//                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
+//                     // sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
+//                     free(new_pkt);
+//                 }
+//                 else{  // dodaj do kolejki czekajacych na ten sam sprzet
+// #ifdef DEBUG_WK
+//                     debug("-------------------------------------------------------------- DODAJE ogrodnika do kolejki czekajacych na sprzet: %d", recv_pkt.src);
+// #endif
 
-                    pthread_mutex_lock(&equipmentMut);
-                    processWaitingForMyEquipment[recv_pkt.src] = recv_pkt.data;
-                    pthread_mutex_unlock(&equipmentMut);
-                }
+//                     pthread_mutex_lock(&equipmentMut);
+//                     processWaitingForMyEquipment[recv_pkt.src] = recv_pkt.data;
+//                     pthread_mutex_unlock(&equipmentMut);
+//                 }
                 
             }break;
 
-            case REPLY_SPRZET:{         
+            case ACK_SPRZET:{         
                 if(stan==waitingForEquipment)
                 {
-                    ile_zgod_sprzet++;
-                    if(ile_zgod_sprzet==size-1){ // 
+                    ack_counter++;
 #ifdef DEBUG_WK
-                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem juz wszystkie zgody! Zaraz zacznę pracę nad zleceniem: %d", id);
+                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem jeden ACK od %d!",recv_pkt.src);
+#endif               
+                    if(ack_counter==size-1){ 
+#ifdef DEBUG_WK
+                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem juz wszystkie ACK! Zaraz zacznę pracę nad zleceniem: %d", id);
 #endif
-                        ile_zgod_sprzet = 0;
-                        changeState(workingInGarden);
+                        sortEquipmentQueue(rodzaj_sprzetu);
+                        ack_counter = 0;
+                        if(canTakeEquipment(recv_pkt)){
+#ifdef DEBUG_WK
+                        debug("-------------------------------------------------------------- Mogę wejść do sekcji krytycznej! Zaczynam pracę nad zleceniem: %d", id);
+#endif
+                            changeState(workingInGarden);
 
 #ifdef DEBUG_WK
                     debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden");
+#endif                                
+                        }
+                        else{
+#ifdef DEBUG_WK
+                    debug("-------------------------------------------------------------- NIE MOGE JESZCZE WEJSC DO SEKCJI KRYTYCZNEJ, CZEKAM NA SPRZET!");
 #endif       
+                        }
+
                     
                     }
                 }
@@ -197,6 +223,17 @@ void *startKomWatek(void *ptr)
                 
                 
             }break;
+
+            case RELEASE_SPRZET:{
+#ifdef DEBUG_WK
+                    debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden");
+#endif     
+                equipmentQueue[rodzaj_sprzetu].erase(recv_pkt.src);
+                if(waitingForEquipment && canTakeEquipment(recv_pkt)){
+                    changeState(workingInGarden);
+                }
+            }break;
+
             default:
                 debug("O panie!");
                 break;
@@ -215,21 +252,19 @@ bool heardAboutThisJob(packet_t pkt){
     return false;
 }
 
-bool shouldSendRequest(packet_t pkt){
-    if(stan==waitingForJob){
-        return true;
-    }
-    return false;
-}
-
 bool shouldSendReply(packet_t pkt){
     if(rank == pkt.src){ return true;}
-    // if(lista_ogloszen[pkt.zlecenie_id]==-2){return true;}
-    if(lista_ogloszen[pkt.zlecenie_id]!=-1){
-        if((pkt.data < lista_ogloszen[pkt.zlecenie_id]) || (pkt.data == lista_ogloszen[pkt.zlecenie_id] && pkt.src < rank)){return true;}
+    if(lista_ogloszen[pkt.zlecenie_id]!=-1 && lista_ogloszen[pkt.zlecenie_id]!=-2){
+        if((pkt.data < lista_ogloszen[pkt.zlecenie_id]) || (pkt.data == lista_ogloszen[pkt.zlecenie_id] && pkt.src < rank))
+        {
+            return true;
+        }
     }
     else{
-        if((pkt.data < lamportClock) || (pkt.data == lamportClock && pkt.src < rank)){return true;}
+        if((pkt.data < lamportClock) || (pkt.data == lamportClock && pkt.src < rank))
+        {
+            return true;
+        }
     }
     
     return false;
@@ -241,5 +276,49 @@ bool shouldGrantEquipment(packet_t pkt){
     else if(stan==waitingForEquipment && moje_zlecenie.rodzaj_sprzetu!=pkt.rodzaj_sprzetu){ // mutex here?
         return true;
     }
+    return false;
+}
+
+bool cmp(std::pair<int, int>& a,
+         std::pair<int, int>& b)
+{
+    return a.second < b.second;
+}
+
+void sortEquipmentQueue(int equipment_id){
+
+    std::vector<std::pair<int, int> > A;
+  
+    for (auto& it : equipmentQueue[equipment_id]) {
+        A.push_back(it);
+    }
+
+    std::sort(A.begin(), A.end(), cmp);
+#ifdef DEBUG_SORT
+    
+#endif
+}
+
+bool canTakeEquipment(packet_t pkt){
+    int position = std::distance(equipmentQueue[pkt.rodzaj_sprzetu].begin(), equipmentQueue[pkt.rodzaj_sprzetu].find(rank));
+    printf("Position in Queue: %d for equipment: %d \n", position, pkt.rodzaj_sprzetu);
+    if (position>=0){
+        if(pkt.zlecenie_id == obslugaTrawnika){
+            if(position <= SP_TRAWNIK-1){
+                return true;
+            }
+        }
+        else if(pkt.zlecenie_id == przycinanieZywoplotu){
+            if(position <= SP_PRZYCINANIE-1){
+                return true;
+            }
+        }
+        else if(pkt.zlecenie_id == wyganianieSzkodnikow){
+            if(position <= SP_WYGANIANIE-1){
+                return true;
+            }
+        }
+    }
+
     return false;
 }
