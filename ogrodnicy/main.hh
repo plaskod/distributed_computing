@@ -13,6 +13,7 @@
 #include <queue>
 #include <vector>
 #include <algorithm>
+#include <unordered_map>
 /* odkomentować, jeżeli się chce DEBUGI */
 #define DEBUG_WG
 #define DEBUG_WK
@@ -21,16 +22,17 @@
 #define DEBUG_TASKLIST
 #define DEBUG_RELEASE
 #define DEBUG_EQUIPMENT
+#define DEBUG_REMOVE
 /* boolean */
 #define TRUE 1
 #define FALSE 0
 #define ROOT 0
 
-#define SP_TRAWNIK 2
+#define SP_TRAWNIK 1
 #define SP_PRZYCINANIE 1
 #define SP_WYGANIANIE 1
 
-#define LICZBA_OGRODNIKOW 2
+
 // stany w ktorych znajduja sie ogrodnicy + instytut
 typedef enum {inInstitute, waitingForJob, waitingForEquipment, workingInGarden, InFinish} state_t;
 // rodzaj pracy
@@ -88,7 +90,13 @@ extern MPI_Datatype MPI_PAKIET_T;
 extern std::map<int, int> lista_ogloszen;
 extern std::map<int, zlecenie_t> zlecenia;
 // extern std::vector<std::map<int,int>> sprzet;
-extern std::map<int, std::map<int, int> > equipmentQueue;
+
+typedef struct{
+    int ranking; // id rank
+    int lamport; // lamport
+} personInLine_t;
+
+extern std::map<int, std::vector<personInLine_t> > equipmentQueue;
 
 extern std::map<int, int> processWaitingForMyEquipment;
 extern std::vector<int> wykonaneZlecenia;

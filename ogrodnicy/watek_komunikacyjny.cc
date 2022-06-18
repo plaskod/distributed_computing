@@ -150,14 +150,15 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                     debug("------------------------------- BROADCAST REQ_SPRZET DONE (EXCLUDING ME)");
 #endif
-
-                    equipmentQueue[rodzaj_sprzetu].insert({rank, request_lamport_clock});
+                    // personInLine_t new_person_waiting_for_equipment = {rank, request_lamport_clock};
+                    equipmentQueue[rodzaj_sprzetu].push_back({rank, request_lamport_clock});
                     pthread_mutex_lock(&readingMut);
                     readLiterature = true;
                     pthread_mutex_unlock(&readingMut);
 
                     if(ack_counter == size-1){
-                        sortEquipmentQueue(rodzaj_sprzetu);
+                        // sortEquipmentQueue(rodzaj_sprzetu);
+                        std::sort(equipmentQueue[rodzaj_sprzetu].begin(), equipmentQueue[rodzaj_sprzetu].end(), cmp);
                         ack_counter = 0;
                         if(canTakeEquipment(recv_pkt))
                         {
@@ -178,9 +179,20 @@ void *startKomWatek(void *ptr)
 
             case REQ_SPRZET:{ // REQ_SPRZET shouldn't come from me
 #ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- Otrzymalem REQ_SPRZET od %d z ts=%d, DODAJE OGRODNIKA DO KOLEJKI!", recv_pkt.src, recv_pkt.ts);
+                    debug("-------------------------------------------------------------- Otrzymalem REQ_SPRZET od %d na sprzet %d z ts=%d, DODAJE OGRODNIKA DO KOLEJKI!", recv_pkt.src, rodzaj_sprzetu, recv_pkt.ts);
 #endif
-                    equipmentQueue[rodzaj_sprzetu].insert({recv_pkt.src, recv_pkt.data});
+                    equipmentQueue[rodzaj_sprzetu].push_back({recv_pkt.src, recv_pkt.data});
+#ifdef DEBUG_REMOVE
+                    printf("Ja (%d) dodalem %d do mojej kolejki po sprzet %d\n", rank, recv_pkt.src, rodzaj_sprzetu);
+                    int i = 0;
+                    std::vector<personInLine_t>::iterator it = equipmentQueue[rodzaj_sprzetu].begin();
+                    while (it!=equipmentQueue[rodzaj_sprzetu].end()){
+                        
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d ubiega sie o sprzet: %d\n", i, it->ranking, it->lamport, rodzaj_sprzetu);
+                        i++;
+                        it++;
+                    }
+#endif
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt, recv_pkt.src, ACK_SPRZET);
                     free(new_pkt);
@@ -205,29 +217,24 @@ void *startKomWatek(void *ptr)
                     printf("Sortowanie rozpoczete przez ogrodnika: %d\n", rank);
                     printf("PRZED SORTOWANIEM\n: ");
                     int i = 0;
-                    std::map<int, int>::iterator it = equipmentQueue[rodzaj_sprzetu].begin();
+                    std::vector<personInLine_t>::iterator it = equipmentQueue[rodzaj_sprzetu].begin();
                     while (it!=equipmentQueue[rodzaj_sprzetu].end()){
                         
-                        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->first, it->second);
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d ubiega sie o sprzet: %d\n", i, it->ranking, it->lamport, rodzaj_sprzetu);
                         i++;
                         it++;
                     }
 #endif
                         
                         
-                        std::vector<std::pair<int, int> > sorted_vector = sortEquipmentQueue(rodzaj_sprzetu);
-                        equipmentQueue[rodzaj_sprzetu].clear();
-                        for (auto& it_sorted : sorted_vector) {
-                            equipmentQueue[rodzaj_sprzetu][it_sorted.first]= it_sorted.second;
-                        }
-                        // equipmentQueue[rodzaj_sprzetu] = sortEquipmentQueue(rodzaj_sprzetu);
+                    std::sort(equipmentQueue[rodzaj_sprzetu].begin(), equipmentQueue[rodzaj_sprzetu].end(), cmp);
 #ifdef DEBUG_SORT
                     printf("PO POSORTOWANIU:\n ");
                     int i2 = 0;
-                    std::map<int, int>::iterator it2 = equipmentQueue[rodzaj_sprzetu].begin();
+                    std::vector<personInLine_t>::iterator it2 = equipmentQueue[rodzaj_sprzetu].begin();
                     while (it2!=equipmentQueue[rodzaj_sprzetu].end()){
                         
-                        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i2, it2->first, it2->second);
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d ubiega sie o sprzet: %d\n", i2, it2->ranking, it2->lamport, rodzaj_sprzetu);
                         i2++;
                         it2++;
                     }
@@ -263,9 +270,35 @@ void *startKomWatek(void *ptr)
 
             case RELEASE_SPRZET:{
 #ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- Otrzymałem RELEASE_SPRZET od %d na rodzaj sprzetu: %d", recv_pkt.src, rodzaj_sprzetu);
+                    debug("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[--RELEASE--]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]  Otrzymałem RELEASE_SPRZET od %d na rodzaj sprzetu: %d", recv_pkt.src, rodzaj_sprzetu);
 #endif     
-                equipmentQueue[rodzaj_sprzetu].erase(recv_pkt.src);
+
+#ifdef DEBUG_REMOVE
+                    printf("Ogrodnik: %d STAN KOLEJKI PRZED SPRZET PO USUNIECIU: %d chcacego sprzet: %d\n: ", rank,  recv_pkt.src, rodzaj_sprzetu);
+                    int i = 0;
+                    std::vector<personInLine_t>::iterator it = equipmentQueue[rodzaj_sprzetu].begin();
+                    while (it!=equipmentQueue[rodzaj_sprzetu].end()){
+                        
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->ranking, it->lamport);
+                        i++;
+                        it++;
+                    }
+#endif
+                removePersonFromQueue(equipmentQueue[rodzaj_sprzetu], recv_pkt.src);
+#ifdef DEBUG_REMOVE
+                    
+                    printf("Ogrodnik: %d STAN KOLEJKI PO SPRZET PO USUNIECIU: %d chcacego sprzet: %d\n: ", rank,  recv_pkt.src, rodzaj_sprzetu);
+                    int i2 = 0;
+                    std::vector<personInLine_t>::iterator it2 = equipmentQueue[rodzaj_sprzetu].begin();
+                    while (it2!=equipmentQueue[rodzaj_sprzetu].end()){
+                        
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i2, it2->ranking, it2->lamport);
+                        i2++;
+                        it2++;
+                    }
+                    
+
+#endif
                 if(rank!=recv_pkt.src && stan==waitingForEquipment && canTakeEquipment(recv_pkt)){
                     changeState(workingInGarden);
                 }
@@ -310,59 +343,53 @@ bool shouldSendReply(packet_t pkt){
 bool shouldGrantEquipment(packet_t pkt){
     if(rank == pkt.src) { return true; }
     else if(stan!=waitingForEquipment){ return true;}
-    else if(stan==waitingForEquipment && moje_zlecenie.rodzaj_sprzetu!=pkt.rodzaj_sprzetu){ // mutex here?
+    else if(stan==waitingForEquipment && moje_zlecenie.rodzaj_sprzetu!=pkt.rodzaj_sprzetu){ 
         return true;
     }
     return false;
 }
 
-bool cmp(std::pair<int, int>& a,
-         std::pair<int, int>& b)
+
+
+bool cmp(const personInLine_t &a, const personInLine_t &b)
 {
-    if (a.second == b.second){
-        return a.first < b.first;
-    }
-    return a.second < b.second;
-}
-
-std::vector<std::pair<int, int> > sortEquipmentQueue(int equipment_id){
-
-    std::vector<std::pair<int, int> > A;
-  
-    for (auto& it : equipmentQueue[equipment_id]) {
-        A.push_back(it);
+    if (a.lamport == b.lamport)
+    {
+        return a.ranking < b.ranking;
     }
 
-    std::sort(A.begin(), A.end(), cmp);
-
-    // equipmentQueue[equipment_id].clear();
-    // std::map<int, int> sortedEquipmentQueue;
-    // for (auto& it_sorted : A) {
-    //     sortedEquipmentQueue.insert({it_sorted.first, it_sorted.second});
-    // }
-
-    return A;
-
+    return a.lamport < b.lamport;
 }
+
+
 
 bool canTakeEquipment(packet_t pkt){
-    int position = std::distance(equipmentQueue[pkt.rodzaj_sprzetu].begin(), equipmentQueue[pkt.rodzaj_sprzetu].find(rank));
+    int position = std::distance(equipmentQueue[pkt.rodzaj_sprzetu].begin(), std::find_if(equipmentQueue[pkt.rodzaj_sprzetu].begin(), 
+             equipmentQueue[pkt.rodzaj_sprzetu].end(), 
+             [](const personInLine_t& person) -> bool { return person.ranking == rank; })); 
+
     if (position>=0){
         
         if(pkt.rodzaj_sprzetu == obslugaTrawnika){
 #ifdef DEBUG_EQUIPMENT
-            printf("Position is found: im on %dth place for equipment: %d with max: %d\n", position, pkt.rodzaj_sprzetu, SP_TRAWNIK-1);
+            printf("Position is found: im (%d) on %dth place for equipment: %d with max: %d\n", rank, position, pkt.rodzaj_sprzetu, SP_TRAWNIK-1);
 #endif
             if(position <= SP_TRAWNIK-1){
                 return true;
             }
         }
         else if(pkt.rodzaj_sprzetu == przycinanieZywoplotu){
+#ifdef DEBUG_EQUIPMENT
+            printf("Position is found: im (%d) on %dth place for equipment: %d with max: %d\n", rank, position, pkt.rodzaj_sprzetu, SP_PRZYCINANIE-1);
+#endif
             if(position <= SP_PRZYCINANIE-1){
                 return true;
             }
         }
         else if(pkt.rodzaj_sprzetu == wyganianieSzkodnikow){
+#ifdef DEBUG_EQUIPMENT
+            printf("Position is found: im (%d) on %dth place for equipment: %d with max: %d\n", rank, position, pkt.rodzaj_sprzetu, SP_WYGANIANIE-1);
+#endif
             if(position <= SP_WYGANIANIE-1){
                 return true;
             }
@@ -370,4 +397,16 @@ bool canTakeEquipment(packet_t pkt){
     }
 
     return false;
+}
+
+
+void removePersonFromQueue(std::vector<personInLine_t> & peopleWaitingForEquipment, int id_to_remove) {
+#ifdef DEBUG_REMOVE
+    printf("Removing: %d\n", id_to_remove);
+#endif
+    peopleWaitingForEquipment.erase(
+        std::remove_if(peopleWaitingForEquipment.begin(), peopleWaitingForEquipment.end(), [&](personInLine_t const & personToBeRemoved) {
+            return personToBeRemoved.ranking == id_to_remove;
+        }),
+        peopleWaitingForEquipment.end());
 }

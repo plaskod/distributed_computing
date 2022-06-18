@@ -7,7 +7,8 @@ bool heardAboutThisJob(packet_t pkt);
 bool shouldSendRequest(packet_t pkt);
 bool shouldSendReply(packet_t pkt);
 bool shouldGrantEquipment(packet_t pkt);
-bool cmp(std::pair<int, int>& a, std::pair<int, int>& b);
+bool cmp(const personInLine_t & a, const personInLine_t & b);
 std::vector<std::pair<int, int> > sortEquipmentQueue(int equip_id);
 bool canTakeEquipment(packet_t pkt);
+void removePersonFromQueue(std::vector<personInLine_t> & peopleWaitingForEquipment, int id_to_remove);
 #endif

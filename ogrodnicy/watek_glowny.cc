@@ -15,7 +15,7 @@ void mainLoop()
                 debug("Instytut: zasypiam na %d sekund", r);
                 sleep(r);
                 
-                rodzaj_sprzetu = rand()%1; // losowanie zadania 0,1 lub 2
+                rodzaj_sprzetu = rand()%3; // losowanie zadania 0,1 lub 2
                 debug("Instytut: rozsyłam zadanie: %d - ogrodnik potrzebuje zasobu: %d", id_zlecenie, rodzaj_sprzetu);
 
                 packet_t *pkt = preparePacket(-1, id_zlecenie, rodzaj_sprzetu, -1);
@@ -78,7 +78,7 @@ void cleanAfterJob(){
         broadcastPacket(new_pkt, RELEASE_SPRZET);
         free(new_pkt);
 #ifdef DEBUG_RELEASE
-    debug("----------------------------------------------RELEASE---------------------------------------------------- Nie potrzebuje juz sprzetu: %d, WYSLALEM BROADCAST", zlecenia[moje_zlecenie.id].rodzaj_sprzetu);
+    debug("[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[--RELEASE--]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]] Nie potrzebuje juz sprzetu: %d potrzebnego mi w zleceniu %d, WYSLALEM BROADCAST", moje_zlecenie.id, zlecenia[moje_zlecenie.id].rodzaj_sprzetu);
 #endif
         moje_zlecenie.id = -1;
         moje_zlecenie.rodzaj_sprzetu = -1;
