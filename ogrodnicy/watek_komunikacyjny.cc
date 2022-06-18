@@ -201,7 +201,37 @@ void *startKomWatek(void *ptr)
 #ifdef DEBUG_WK
                         debug("--------------------------------------------------------------Czekajac na sprzet, odebralem juz wszystkie ACK! Zaraz zacznę pracę nad zleceniem: %d", id);
 #endif
-                        sortEquipmentQueue(rodzaj_sprzetu);
+#ifdef DEBUG_SORT
+                    printf("Sortowanie rozpoczete przez ogrodnika: %d\n", rank);
+                    printf("PRZED SORTOWANIEM\n: ");
+                    int i = 0;
+                    std::map<int, int>::iterator it = equipmentQueue[rodzaj_sprzetu].begin();
+                    while (it!=equipmentQueue[rodzaj_sprzetu].end()){
+                        
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->first, it->second);
+                        i++;
+                        it++;
+                    }
+#endif
+                        
+                        
+                        std::vector<std::pair<int, int> > sorted_vector = sortEquipmentQueue(rodzaj_sprzetu);
+                        equipmentQueue[rodzaj_sprzetu].clear();
+                        for (auto& it_sorted : sorted_vector) {
+                            equipmentQueue[rodzaj_sprzetu][it_sorted.first]= it_sorted.second;
+                        }
+                        // equipmentQueue[rodzaj_sprzetu] = sortEquipmentQueue(rodzaj_sprzetu);
+#ifdef DEBUG_SORT
+                    printf("PO POSORTOWANIU:\n ");
+                    int i2 = 0;
+                    std::map<int, int>::iterator it2 = equipmentQueue[rodzaj_sprzetu].begin();
+                    while (it2!=equipmentQueue[rodzaj_sprzetu].end()){
+                        
+                        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i2, it2->first, it2->second);
+                        i2++;
+                        it2++;
+                    }
+#endif
                         ack_counter = 0;
                         if(canTakeEquipment(recv_pkt)){
 #ifdef DEBUG_WK
@@ -295,19 +325,8 @@ bool cmp(std::pair<int, int>& a,
     return a.second < b.second;
 }
 
-void sortEquipmentQueue(int equipment_id){
-#ifdef DEBUG_SORT
-    printf("Sortowanie rozpoczete przez ogrodnika: %d\n", rank);
-    printf("PRZED SORTOWANIEM\n: ");
-    int i = 0;
-    std::map<int, int>::iterator it = equipmentQueue[equipment_id].begin();
-    while (it!=equipmentQueue[equipment_id].end()){
-        
-        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->first, it->second);
-        i++;
-        it++;
-    }
-#endif
+std::vector<std::pair<int, int> > sortEquipmentQueue(int equipment_id){
+
     std::vector<std::pair<int, int> > A;
   
     for (auto& it : equipmentQueue[equipment_id]) {
@@ -315,18 +334,14 @@ void sortEquipmentQueue(int equipment_id){
     }
 
     std::sort(A.begin(), A.end(), cmp);
-#ifdef DEBUG_SORT
-    printf("PO POSORTOWANIU\n: ");
-    int i2 = 0;
-    std::map<int, int>::iterator it2 = equipmentQueue[equipment_id].begin();
-    while (it2!=equipmentQueue[equipment_id].end()){
-        
-        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i2, it2->first, it2->second);
-        i2++;
-        it2++;
-    }
-#endif
-    
+
+    // equipmentQueue[equipment_id].clear();
+    // std::map<int, int> sortedEquipmentQueue;
+    // for (auto& it_sorted : A) {
+    //     sortedEquipmentQueue.insert({it_sorted.first, it_sorted.second});
+    // }
+
+    return A;
 
 }
 
