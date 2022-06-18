@@ -54,16 +54,18 @@ void *startKomWatek(void *ptr)
                 if(stan == waitingForJob){
                     std::map<int, int>::iterator it = lista_ogloszen.begin();
                     while (it!=lista_ogloszen.end()){
+#ifdef DEBUG_TASKLIST 
+                        printf("Ogrodnik : %d na mojej liscie ogloszen, zlecenie: %d ma wartosc: %d\n", rank, it->first, it->second);
+#endif
                         if(it->second == -1){
                             
                             int idd = it->first;
-                            lista_ogloszen[idd] = lamportClock; // lamportCLock kiedy wyslalem request 
+                            lista_ogloszen[idd] = lamportClock; // lamportClock kiedy wyslalem request 
 #ifdef DEBUG_WK
                             debug("Iteruje po: %d z rodzajem sprzetu: %d", idd, zlecenia[idd].rodzaj_sprzetu);
 #endif
                             packet_t *new_pkt = preparePacket(lamportClock, idd, zlecenia[idd].rodzaj_sprzetu, lamportClock);
                             broadcastPacket(new_pkt, REQ_ZLECENIE);
-                            // lista_ogloszen[idd] = lamportClock; // nie usuwam z listy ogloszen, kazdy kolejny REQ ponownie by to dodawal
                             free(new_pkt);
                             break;
                         }
@@ -76,7 +78,7 @@ void *startKomWatek(void *ptr)
             }break;
             case REQ_ZLECENIE:{    
 #ifdef DEBUG_WK
-                debug("------------------------------- Otrzymalem REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.ts, id);
+                debug("------------------------------- Otrzymalem REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.data, id);
 #endif        
 
                 if(!heardAboutThisJob(recv_pkt)){
@@ -90,7 +92,7 @@ void *startKomWatek(void *ptr)
                 
                 if(shouldSendReply(recv_pkt)){
 #ifdef DEBUG_WK
-                debug("------------------------------- Odpowiadam REPLY_ZLECENIE na REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.ts, id);
+                debug("------------------------------- Odpowiadam REPLY_ZLECENIE na REQ_ZLECENIE od: %d z ts=%d na zlecenie: %d", recv_pkt.src, recv_pkt.data, id);
 #endif
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt,recv_pkt.src, REPLY_ZLECENIE_ZGODA);
@@ -98,16 +100,13 @@ void *startKomWatek(void *ptr)
 
                     //lista_ogloszen[id] = -2; // zaznaczam
 
-
                     if(recv_pkt.src!=rank){
 #ifdef DEBUG_WK
-                        debug("------------------------------- NIE POWINIENEM ZAJAC SIE TYM ZLECENIEM: %d, zegar lamporta ogrodnika: %d == %d", id, recv_pkt.src, recv_pkt.data);
+                        debug("------------------------------- NIE POWINIENEM ZAJAC SIE TYM ZLECENIEM: %d, zegar lamporta ogrodnika %d wynosi %d, a moj: %d", id, recv_pkt.src, recv_pkt.data, lista_ogloszen[recv_pkt.zlecenie_id]);
 #endif
                         replies[id] = 0;
+                        lista_ogloszen[id] = -2;
                     }
-
-                    
-                    // lista_ogloszen.erease(id); // jezeli odpowiadam to nie ubiegam sie
                     
                 }
                 else{
@@ -130,57 +129,53 @@ void *startKomWatek(void *ptr)
                     replies[id] = 0;
                     moje_zlecenie.id = id;
                     moje_zlecenie.rodzaj_sprzetu = rodzaj_sprzetu;
-                    //int request_lamport_clock = lamportClock;
+                    int request_lamport_clock = lamportClock;
 #ifdef DEBUG_WK
                     debug("------------------------------- Zaraz zaczne pracę nad id: %d ide szukac sprzetu: %d ", moje_zlecenie.id, moje_zlecenie.rodzaj_sprzetu);
 #endif  
 
-                    // ADD READING LITERATURE HERE
-                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
-                    broadcastPacket(new_pkt, REQ_SPRZET);
-#ifdef DEBUG_WK
-                    debug("------------------------------- BROADCAST REQ_SPRZET");
+                    
+                    packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, request_lamport_clock);
+                    for(int i = 1; i<size; i++){ // broadcast to all, exlucding me that I want equipment
+                        if(i!=rank){
+#ifdef DEBUG_BROADCAST
+                            debug("Sending packet to: %d", i);
 #endif
-                    //equipmentQueue[rodzaj_sprzetu].insert({rank, request_lamport_clock});
+                            sendPacket(new_pkt, i, REQ_SPRZET);
+                        }                             
+                    }
+                    free(new_pkt);
+                    
+                    ack_counter++;
+#ifdef DEBUG_WK
+                    debug("------------------------------- BROADCAST REQ_SPRZET DONE (EXCLUDING ME)");
+#endif
+
+                    equipmentQueue[rodzaj_sprzetu].insert({rank, request_lamport_clock});
                     pthread_mutex_lock(&readingMut);
                     readLiterature = true;
                     pthread_mutex_unlock(&readingMut);
-                    free(new_pkt);
+
+                    
+                    
 
                 }
                 
                 
             }break;
 
-            case REQ_SPRZET:{
+            case REQ_SPRZET:{ // REQ_SPRZET shouldn't come from me
 #ifdef DEBUG_WK
                     debug("-------------------------------------------------------------- Otrzymalem REQ_SPRZET od %d z ts=%d, DODAJE OGRODNIKA DO KOLEJKI!", recv_pkt.src, recv_pkt.ts);
 #endif
                     equipmentQueue[rodzaj_sprzetu].insert({recv_pkt.src, recv_pkt.data});
                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
                     sendPacket(new_pkt, recv_pkt.src, ACK_SPRZET);
+                    free(new_pkt);
 #ifdef DEBUG_WK
                     debug("-------------------------------------------------------------- Wysylalem ACK_SPRZET do %d", recv_pkt.src);
 #endif
-                    free(new_pkt);
-//                 if(shouldGrantEquipment(recv_pkt)){
-// #ifdef DEBUG_WK
-//                     debug("-------------------------------------------------------------- Udzielam REPLY_SPRZET ogrodnikowi: %d z ts=%d", recv_pkt.src, recv_pkt.ts);
-// #endif
-//                     packet_t *new_pkt = preparePacket(lamportClock, id, rodzaj_sprzetu, lamportClock);
-//                     // sendPacket(new_pkt, recv_pkt.src, REPLY_SPRZET);
-//                     free(new_pkt);
-//                 }
-//                 else{  // dodaj do kolejki czekajacych na ten sam sprzet
-// #ifdef DEBUG_WK
-//                     debug("-------------------------------------------------------------- DODAJE ogrodnika do kolejki czekajacych na sprzet: %d", recv_pkt.src);
-// #endif
-
-//                     pthread_mutex_lock(&equipmentMut);
-//                     processWaitingForMyEquipment[recv_pkt.src] = recv_pkt.data;
-//                     pthread_mutex_unlock(&equipmentMut);
-//                 }
-                
+                    
             }break;
 
             case ACK_SPRZET:{         
@@ -188,7 +183,7 @@ void *startKomWatek(void *ptr)
                 {
                     ack_counter++;
 #ifdef DEBUG_WK
-                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem jeden ACK od %d!",recv_pkt.src);
+                        debug("--------------------------------------------------------------Czekajac na sprzet, odebralem jeden ACK od %d! Razem: %d z %d",recv_pkt.src, ack_counter, size-1);
 #endif               
                     if(ack_counter==size-1){ 
 #ifdef DEBUG_WK
@@ -229,7 +224,7 @@ void *startKomWatek(void *ptr)
                     debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden");
 #endif     
                 equipmentQueue[rodzaj_sprzetu].erase(recv_pkt.src);
-                if(waitingForEquipment && canTakeEquipment(recv_pkt)){
+                if(stan==waitingForEquipment && canTakeEquipment(recv_pkt)){
                     changeState(workingInGarden);
                 }
             }break;
@@ -286,7 +281,9 @@ bool cmp(std::pair<int, int>& a,
 }
 
 void sortEquipmentQueue(int equipment_id){
-
+#ifdef DEBUG_SORT
+    printf("Sortowanie rozpoczete przez ogrodnika: %d\n", rank);
+#endif
     std::vector<std::pair<int, int> > A;
   
     for (auto& it : equipmentQueue[equipment_id]) {
@@ -295,25 +292,37 @@ void sortEquipmentQueue(int equipment_id){
 
     std::sort(A.begin(), A.end(), cmp);
 #ifdef DEBUG_SORT
-    
+    int i = 0;
+    std::map<int, int>::iterator it = equipmentQueue[equipment_id].begin();
+    while (it!=equipmentQueue[equipment_id].end()){
+        printf("PO POSORTOWANIU\n: ");
+        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->first, it->second);
+        i++;
+        it++;
+    }
 #endif
+    
+
 }
 
 bool canTakeEquipment(packet_t pkt){
     int position = std::distance(equipmentQueue[pkt.rodzaj_sprzetu].begin(), equipmentQueue[pkt.rodzaj_sprzetu].find(rank));
-    printf("Position in Queue: %d for equipment: %d \n", position, pkt.rodzaj_sprzetu);
     if (position>=0){
-        if(pkt.zlecenie_id == obslugaTrawnika){
+        
+        if(pkt.rodzaj_sprzetu == obslugaTrawnika){
+#ifdef DEBUG_EQUIPMENT
+            printf("Position is found: im on %dth place for equipment: %d with max: %d\n", position, pkt.rodzaj_sprzetu, SP_TRAWNIK-1);
+#endif
             if(position <= SP_TRAWNIK-1){
                 return true;
             }
         }
-        else if(pkt.zlecenie_id == przycinanieZywoplotu){
+        else if(pkt.rodzaj_sprzetu == przycinanieZywoplotu){
             if(position <= SP_PRZYCINANIE-1){
                 return true;
             }
         }
-        else if(pkt.zlecenie_id == wyganianieSzkodnikow){
+        else if(pkt.rodzaj_sprzetu == wyganianieSzkodnikow){
             if(position <= SP_WYGANIANIE-1){
                 return true;
             }

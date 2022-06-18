@@ -17,7 +17,10 @@
 #define DEBUG_WG
 #define DEBUG_WK
 #define DEBUG_BROADCAST
-
+#define DEBUG_SORT
+#define DEBUG_TASKLIST
+#define DEBUG_RELEASE
+#define DEBUG_EQUIPMENT
 /* boolean */
 #define TRUE 1
 #define FALSE 0
