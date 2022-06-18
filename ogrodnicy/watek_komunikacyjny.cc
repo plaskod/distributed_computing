@@ -183,7 +183,7 @@ void *startKomWatek(void *ptr)
 #endif
                     equipmentQueue[rodzaj_sprzetu].push_back({recv_pkt.src, recv_pkt.data});
 #ifdef DEBUG_REMOVE
-                    printf("Ja (%d) dodalem %d do mojej kolejki po sprzet %d\n", rank, recv_pkt.src, rodzaj_sprzetu);
+                    debug("Ogrodnik (%d) dodalem %d do mojej kolejki po sprzet %d\n pod zlecenie %d MOJA AKTUALNA KOLEJKA po sprzet: %d", rank, recv_pkt.src, rodzaj_sprzetu, id, rodzaj_sprzetu);
                     int i = 0;
                     std::vector<personInLine_t>::iterator it = equipmentQueue[rodzaj_sprzetu].begin();
                     while (it!=equipmentQueue[rodzaj_sprzetu].end()){

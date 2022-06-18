@@ -151,10 +151,10 @@ void changeState( state_t newState )
 	    pthread_mutex_unlock( &stateMut );
         return;
     }
-    if (stan==workingInGarden && newState==waitingForJob){
-        moje_zlecenie.id = -1;
-        moje_zlecenie.rodzaj_sprzetu = -1;
-    }
+    // if (stan==workingInGarden && newState==waitingForJob){
+    //     moje_zlecenie.id = -1;
+    //     moje_zlecenie.rodzaj_sprzetu = -1;
+    // }
     stan = newState;
     pthread_mutex_unlock( &stateMut );
 }

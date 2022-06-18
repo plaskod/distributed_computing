@@ -19,19 +19,18 @@
 #define DEBUG_WK
 #define DEBUG_BROADCAST
 #define DEBUG_SORT
-#define DEBUG_TASKLIST
-#define DEBUG_RELEASE
-#define DEBUG_EQUIPMENT
-#define DEBUG_REMOVE
+// #define DEBUG_TASKLIST
+// #define DEBUG_RELEASE
+// #define DEBUG_EQUIPMENT
+// #define DEBUG_REMOVE
 /* boolean */
 #define TRUE 1
 #define FALSE 0
 #define ROOT 0
 
-#define SP_TRAWNIK 1
+#define SP_TRAWNIK 2
 #define SP_PRZYCINANIE 1
 #define SP_WYGANIANIE 1
-
 
 // stany w ktorych znajduja sie ogrodnicy + instytut
 typedef enum {inInstitute, waitingForJob, waitingForEquipment, workingInGarden, InFinish} state_t;
