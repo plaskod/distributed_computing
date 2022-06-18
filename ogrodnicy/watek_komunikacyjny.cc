@@ -156,6 +156,18 @@ void *startKomWatek(void *ptr)
                     readLiterature = true;
                     pthread_mutex_unlock(&readingMut);
 
+                    if(ack_counter == size-1){
+                        sortEquipmentQueue(rodzaj_sprzetu);
+                        ack_counter = 0;
+                        if(canTakeEquipment(recv_pkt))
+                        {
+#ifdef DEBUG_WK
+                            debug("-------------------------------------------------------------- Mogę wejść do sekcji krytycznej od razu po zgodzie na zlecenie! Zaczynam pracę nad zleceniem: %d", id);
+#endif
+                            changeState(workingInGarden);
+                        }
+                    }
+
                     
                     
 
@@ -198,7 +210,7 @@ void *startKomWatek(void *ptr)
                             changeState(workingInGarden);
 
 #ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden");
+                    debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden, zajmuje sie zleceniem: %d, ack_counter= %d", id, ack_counter);
 #endif                                
                         }
                         else{
@@ -221,10 +233,10 @@ void *startKomWatek(void *ptr)
 
             case RELEASE_SPRZET:{
 #ifdef DEBUG_WK
-                    debug("-------------------------------------------------------------- Zmieniłem stan na workingInGarden");
+                    debug("-------------------------------------------------------------- Otrzymałem RELEASE_SPRZET od %d na rodzaj sprzetu: %d", recv_pkt.src, rodzaj_sprzetu);
 #endif     
                 equipmentQueue[rodzaj_sprzetu].erase(recv_pkt.src);
-                if(stan==waitingForEquipment && canTakeEquipment(recv_pkt)){
+                if(rank!=recv_pkt.src && stan==waitingForEquipment && canTakeEquipment(recv_pkt)){
                     changeState(workingInGarden);
                 }
             }break;
@@ -277,12 +289,24 @@ bool shouldGrantEquipment(packet_t pkt){
 bool cmp(std::pair<int, int>& a,
          std::pair<int, int>& b)
 {
+    if (a.second == b.second){
+        return a.first < b.first;
+    }
     return a.second < b.second;
 }
 
 void sortEquipmentQueue(int equipment_id){
 #ifdef DEBUG_SORT
     printf("Sortowanie rozpoczete przez ogrodnika: %d\n", rank);
+    printf("PRZED SORTOWANIEM\n: ");
+    int i = 0;
+    std::map<int, int>::iterator it = equipmentQueue[equipment_id].begin();
+    while (it!=equipmentQueue[equipment_id].end()){
+        
+        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->first, it->second);
+        i++;
+        it++;
+    }
 #endif
     std::vector<std::pair<int, int> > A;
   
@@ -292,13 +316,14 @@ void sortEquipmentQueue(int equipment_id){
 
     std::sort(A.begin(), A.end(), cmp);
 #ifdef DEBUG_SORT
-    int i = 0;
-    std::map<int, int>::iterator it = equipmentQueue[equipment_id].begin();
-    while (it!=equipmentQueue[equipment_id].end()){
-        printf("PO POSORTOWANIU\n: ");
-        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i, it->first, it->second);
-        i++;
-        it++;
+    printf("PO POSORTOWANIU\n: ");
+    int i2 = 0;
+    std::map<int, int>::iterator it2 = equipmentQueue[equipment_id].begin();
+    while (it2!=equipmentQueue[equipment_id].end()){
+        
+        printf("Iteracja: %d id ogrodnika: %d ts: %d \n", i2, it2->first, it2->second);
+        i2++;
+        it2++;
     }
 #endif
     

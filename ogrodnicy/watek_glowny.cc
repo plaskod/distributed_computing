@@ -78,7 +78,7 @@ void cleanAfterJob(){
         broadcastPacket(new_pkt, RELEASE_SPRZET);
         free(new_pkt);
 #ifdef DEBUG_RELEASE
-    debug("----------------------------------------------RELEASE---------------------------------------------------- Nie potrzebuje juz sprzetu: %d, WYSLALEM BROADCAST", moje_zlecenie.rodzaj_sprzetu);
+    debug("----------------------------------------------RELEASE---------------------------------------------------- Nie potrzebuje juz sprzetu: %d, WYSLALEM BROADCAST", zlecenia[moje_zlecenie.id].rodzaj_sprzetu);
 #endif
         moje_zlecenie.id = -1;
         moje_zlecenie.rodzaj_sprzetu = -1;
